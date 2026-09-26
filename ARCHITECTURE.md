@@ -53,6 +53,27 @@ camera can't drift off the page.
 Excalidraw re-centres itself shortly after mounting, so the first camera
 move waits `SETTLE_MS` (300 ms) after the API arrives.
 
+In view mode Excalidraw pans on every mouse drag, so the camera is re-applied
+on every `pointerup`: a drag can never leave the page off-centre.
+
+### Controls
+
+A floating `ControlBar` fades in when the mouse moves and out after 2.5 s
+(the cursor hides with it). A progress line along the bottom edge and a
+corner counter stay visible. `useSlideKeys` is the one keyboard entry point;
+Esc backs out one step at a time (typed page number, overlay, laser, then the
+board).
+
+- **Page grid (G).** Thumbnails come from Excalidraw's `exportToCanvas`,
+  which crops exactly to a frame when given `exportingFrame`. Every page is
+  handed over as a frame: the real one, or an in-memory stand-in for
+  automatically found pages (`lib/render.ts`). They are drawn one at a time,
+  only once the grid is first opened.
+- **Laser (K).** Excalidraw's own laser can't run in view mode (the drag pans
+  first), so `LaserPointer` is an SVG overlay drawing a dot and a fading
+  trail. Sitting over the canvas, it also stops pointing from panning.
+- **Resume.** The last page shown is saved per board and restored on open.
+
 ## Opening boards (`features/open/`)
 
 Edge and Chrome support the File System Access API, so the picker returns a
@@ -79,6 +100,8 @@ belongs to the page's address.
 
 ## History
 
+- **v0.0.2** — Control bar, page grid with thumbnails, go to page by number,
+  full screen, laser pointer, shortcut help, resume at the last page.
 - **v0.0.1** — Replaces a single-file HTML viewer (Excalidraw from a CDN,
   page boundaries typed in by hand) with this project. That in turn replaced
   a failed attempt with the Obsidian Excalidraw plugin, which crashed

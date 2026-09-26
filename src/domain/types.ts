@@ -24,4 +24,6 @@ export interface Page {
   y1: number;
   /** The frame's name, or "" for automatically found pages. */
   name: string;
+  /** The frame this page came from, if any. */
+  frameId?: string;
 }

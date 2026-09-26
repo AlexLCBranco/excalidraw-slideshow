@@ -7,8 +7,15 @@ interface Actions {
   last: () => void;
   smaller: () => void;
   bigger: () => void;
+  grid: () => void;
+  fullscreen: () => void;
+  laser: () => void;
+  help: () => void;
   open: () => void;
   close: () => void;
+  /** A digit typed towards "go to page N". */
+  digit: (d: string) => void;
+  enter: () => void;
 }
 
 const KEYS: Record<string, keyof Actions> = {
@@ -16,8 +23,13 @@ const KEYS: Record<string, keyof Actions> = {
   ArrowLeft: "previous", ArrowUp: "previous", PageUp: "previous",
   Home: "first", End: "last",
   "-": "smaller", "=": "bigger", "+": "bigger",
+  g: "grid", G: "grid",
+  f: "fullscreen", F: "fullscreen",
+  k: "laser", K: "laser",
+  "?": "help",
   o: "open", O: "open",
   Escape: "close",
+  Enter: "enter",
 };
 
 /**
@@ -36,11 +48,13 @@ export function useSlideKeys(enabled: boolean, actions: Actions) {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
-      const action = KEYS[e.key];
+      const isDigit = e.key >= "0" && e.key <= "9" && e.key.length === 1;
+      const action = isDigit ? "digit" : KEYS[e.key];
       if (!action) return;
       e.preventDefault();
       e.stopPropagation();
-      latest.current[action]();
+      if (action === "digit") latest.current.digit(e.key);
+      else latest.current[action]();
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();

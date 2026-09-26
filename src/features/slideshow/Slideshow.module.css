@@ -14,7 +14,8 @@
 }
 
 .hud,
-.toast {
+.toast,
+.typed {
   position: fixed;
   z-index: var(--z-hud);
   padding: var(--space-1) var(--space-3);
@@ -28,15 +29,47 @@
 .hud {
   right: var(--space-4);
   bottom: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  transition: opacity var(--duration-slow) var(--ease-out);
 }
 
-.pageName {
-  margin-right: var(--space-3);
-  color: var(--text-muted);
+.hud[data-visible="false"] {
+  opacity: 0;
+}
+
+/* How far through the board: a thin line along the bottom edge. */
+.progress {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: var(--z-hud);
+  height: var(--progress-height);
+  background: var(--accent);
+  transition: width var(--duration-slow) var(--ease-out);
+  pointer-events: none;
+}
+
+.typed {
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: var(--z-bar);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* The cursor hides with the control bar while the mouse is still. */
+.stage[data-cursor-hidden="true"],
+.stage[data-cursor-hidden="true"] * {
+  cursor: none !important;
 }
 
 .toast {
   top: var(--space-4);
+  z-index: var(--z-bar);
   left: 50%;
   translate: -50% 0;
   font-size: var(--font-size-md);

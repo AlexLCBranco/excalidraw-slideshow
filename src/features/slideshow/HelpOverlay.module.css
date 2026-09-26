@@ -1,0 +1,25 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--scrim);
+  backdrop-filter: blur(var(--blur-md));
+}
+
+.card {
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-lg);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}

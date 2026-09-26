@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { ShortcutList } from "../slideshow/ShortcutList";
 import styles from "./OpenScreen.module.css";
 
 interface Props {
@@ -30,22 +31,11 @@ export function OpenScreen({ status, busy, lastFileName, onPick, onReopen, onDro
             </button>
           )}
         </div>
-        <KeyHelp />
+        <div className={styles.keys}>
+          <ShortcutList />
+        </div>
       </div>
     </div>
-  );
-}
-
-function KeyHelp() {
-  return (
-    <dl className={styles.keys}>
-      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>previous / next page</dd>
-      <dt><kbd>Home</kbd> <kbd>End</kbd></dt><dd>first / last page</dd>
-      <dt><kbd>O</kbd></dt><dd>open another board</dd>
-      <dt><kbd>Esc</kbd></dt><dd>back to this screen</dd>
-      <dt><kbd>-</kbd> <kbd>=</kbd></dt><dd>smaller / bigger pages (boards without frames)</dd>
-      <dt><kbd>F11</kbd></dt><dd>full screen</dd>
-    </dl>
   );
 }
 

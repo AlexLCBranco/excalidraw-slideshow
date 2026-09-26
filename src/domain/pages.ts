@@ -35,7 +35,7 @@ export function findPages(elements: readonly SceneElement[], pageHeight: number)
       );
     if (content.filter(inside).length >= content.length * FRAME_COVERAGE) {
       return frames
-        .map((f) => ({ x0: f.x, y0: f.y, x1: f.x + (f.width ?? 0), y1: f.y + (f.height ?? 0), name: f.name ?? "" }))
+        .map((f) => ({ x0: f.x, y0: f.y, x1: f.x + (f.width ?? 0), y1: f.y + (f.height ?? 0), name: f.name ?? "", frameId: f.id }))
         .sort((a, b) => (Math.abs(a.y0 - b.y0) > 50 ? a.y0 - b.y0 : a.x0 - b.x0));
     }
   }
