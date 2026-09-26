@@ -118,6 +118,24 @@ and drag-and-drop, just not a remembered library.
 install (gitignored), and `index.html` sets `window.EXCALIDRAW_ASSET_PATH =
 "/"` so Excalidraw loads them from there instead of a CDN.
 
+`vite-plugin-pwa` adds a service worker that precaches the whole build
+(~8 MB), so after one visit the site works with no network. Xiaolai, the
+CJK font (13 MB in ~200 pieces), is left out of the precache and cached on
+first use instead. A new version downloads in the background and waits: the
+library shows "A new version is ready", and nothing reloads on its own, so a
+presentation is never interrupted. The worker only runs in production builds
+(`npm run build`), not under `npm run dev`. The Claude desktop app's browser
+pane can't register service workers; test offline in Edge or Chrome.
+
+## Installing
+
+The manifest makes the site installable (Edge/Chrome: the install icon in
+the address bar). Installed, it opens in its own window, and its
+`file_handlers` entry registers it for `.excalidraw` files, so "Open with"
+(or a double-click once it's the default) opens a board straight into a
+slideshow. The file arrives through `window.launchQueue`
+(`features/open/useLaunchFiles.ts`) and joins the library like any opened file.
+
 ## Launching
 
 `Start Slideshow.bat` installs on first run, rebuilds (about 2 s), then runs
@@ -127,6 +145,8 @@ belongs to the page's address.
 
 ## History
 
+- **v0.0.4** — Installable app: offline service worker, update banner, opens
+  `.excalidraw` files from File Explorer.
 - **v0.0.3** — Library dashboard (connected folders, board cards with
   pictures, search, sort) and real addresses per board and page.
 - **v0.0.2** — Control bar, page grid with thumbnails, go to page by number,

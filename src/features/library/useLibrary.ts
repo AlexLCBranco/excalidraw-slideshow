@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { type BoardEntry, hasAccess, idWithin, scanSources } from "../../lib/library";
 import { loadSources, type Source, saveSources } from "../../lib/storage";
@@ -19,6 +19,10 @@ export function useLibrary() {
   const [sources, setSources] = useState<Source[]>([]);
   const [entries, setEntries] = useState<BoardEntry[]>([]);
   const [state, setState] = useState<LibraryState>("loading");
+  // The latest list, as a promise: `add` can be called (say, for a file opened
+  // from Explorer) before the saved list has loaded, and must not overwrite it.
+  const latest = useRef<Promise<Source[]> | null>(null);
+  latest.current ??= loadSources();
 
   const refresh = useCallback(async (list: Source[], ask = false) => {
     // One at a time: the browser shows one permission prompt per source.
@@ -33,7 +37,7 @@ export function useLibrary() {
   }, []);
 
   useEffect(() => {
-    void loadSources().then((list) => {
+    void latest.current?.then((list) => {
       setSources(list);
       void refresh(list);
     });
@@ -47,6 +51,7 @@ export function useLibrary() {
 
   const update = useCallback(
     (next: Source[]) => {
+      latest.current = Promise.resolve(next);
       setSources(next);
       void saveSources(next);
       void refresh(next);
@@ -61,13 +66,14 @@ export function useLibrary() {
    */
   const add = useCallback(
     async (source: Source) => {
-      const existing = await idWithin(sources, source);
+      const current = (await latest.current) ?? [];
+      const existing = await idWithin(current, source);
       if (existing !== null) return existing;
-      const inside = await Promise.all(sources.map((s) => idWithin([source], s)));
-      update([...sources.filter((_, i) => inside[i] === null), source]);
+      const inside = await Promise.all(current.map((s) => idWithin([source], s)));
+      update([...current.filter((_, i) => inside[i] === null), source]);
       return source.name;
     },
-    [sources, update],
+    [update],
   );
 
   const remove = useCallback((source: Source) => update(sources.filter((s) => s !== source)), [sources, update]);

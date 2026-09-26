@@ -7,7 +7,6 @@ The record of what was built and why lives in [`ARCHITECTURE.md`](./ARCHITECTURE
 
 | Item | Owner |
 |------|-------|
-| Installable app (PWA): offline, opens `.excalidraw` files by double-click | Claude |
 | Deploy to Vercel | Claude |
 
 ## Queued

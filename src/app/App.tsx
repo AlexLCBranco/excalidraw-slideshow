@@ -5,9 +5,11 @@ import { LibraryScreen } from "../features/library/LibraryScreen";
 import { useLibrary } from "../features/library/useLibrary";
 import { type Picked, pickBoardFile, pickBoardFolder } from "../features/open/pickBoard";
 import { useBoardLoader } from "../features/open/useBoardLoader";
+import { useLaunchFiles } from "../features/open/useLaunchFiles";
 import { useWindowFileDrop } from "../features/open/useWindowFileDrop";
 import { Slideshow } from "../features/slideshow/Slideshow";
 import styles from "./App.module.css";
+import { UpdateBanner } from "./UpdateBanner";
 import { showPageInAddress, useRoute } from "./useRoute";
 import { VersionBadge } from "./VersionBadge";
 
@@ -66,44 +68,46 @@ export function App() {
   const openFile = useCallback(() => void pickBoardFile().then((p) => p && openPicked(p)), [openPicked]);
   const connectFolder = useCallback(() => void pickBoardFolder().then((d) => d && library.add(d)), [library]);
   const dragging = useWindowFileDrop(openPicked);
-
-  if (showing) {
-    return (
-      <Slideshow
-        key={showing.key}
-        board={showing.board}
-        initialPage={route.page}
-        onPageChange={showPageInAddress}
-        onOpenAnother={openFile}
-        onClose={toLibrary}
-      />
-    );
-  }
+  useLaunchFiles(openPicked);
 
   const opening = loading?.name ?? (library.state !== "blocked" ? route.boardId?.split("/").pop() : undefined);
 
   return (
     <>
-      <LibraryScreen
-        state={library.state}
-        sources={library.sources}
-        entries={library.entries}
-        notice={error}
-        onDismissNotice={() => setError("")}
-        dragging={dragging}
-        onOpen={(entry) => present(entry.id, entry.handle)}
-        onOpenFile={openFile}
-        onConnectFolder={connectFolder}
-        onRemoveSource={library.remove}
-        onAllowAccess={library.allowAccess}
-      />
-      {opening && (
-        <div className={styles.loading}>
-          <span className={styles.spinner} />
-          Opening {displayName(opening)}…
-        </div>
+      {showing ? (
+        <Slideshow
+          key={showing.key}
+          board={showing.board}
+          initialPage={route.page}
+          onPageChange={showPageInAddress}
+          onOpenAnother={openFile}
+          onClose={toLibrary}
+        />
+      ) : (
+        <>
+          <LibraryScreen
+            state={library.state}
+            sources={library.sources}
+            entries={library.entries}
+            notice={error}
+            onDismissNotice={() => setError("")}
+            dragging={dragging}
+            onOpen={(entry) => present(entry.id, entry.handle)}
+            onOpenFile={openFile}
+            onConnectFolder={connectFolder}
+            onRemoveSource={library.remove}
+            onAllowAccess={library.allowAccess}
+          />
+          {opening && (
+            <div className={styles.loading}>
+              <span className={styles.spinner} />
+              Opening {displayName(opening)}…
+            </div>
+          )}
+          <VersionBadge />
+        </>
       )}
-      <VersionBadge />
+      <UpdateBanner hidden={showing !== null} />
     </>
   );
 }

@@ -1,0 +1,28 @@
+.banner {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bar-bg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--font-size-md);
+  translate: -50% 0;
+}
+
+.banner button {
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
