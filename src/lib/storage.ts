@@ -1,46 +1,41 @@
 /**
- * Everything the app remembers between launches, all in this browser:
- *  - the page height chosen and the page last shown per board (localStorage), and
- *  - a handle to the last opened file (IndexedDB, because file handles can't
- *    be turned into text for localStorage).
+ * Everything the app remembers between visits, all in this browser:
+ *  - per board, the page height chosen, the page last shown and when it was
+ *    last opened (localStorage), and
+ *  - the connected folders and files, and cached board thumbnails
+ *    (IndexedDB, because file handles and images can't go in localStorage).
  * Every call tolerates storage being unavailable and falls back to "nothing saved".
  */
 
 const PREFIX = "excalidraw-slideshow:";
 
-export function loadPageHeight(boardName: string): number | null {
+function loadNumber(key: string): number | null {
   try {
-    const v = Number(localStorage.getItem(PREFIX + "pageHeight:" + boardName));
-    return v > 0 ? v : null;
+    const v = Number(localStorage.getItem(PREFIX + key));
+    return Number.isFinite(v) && v > 0 ? v : null;
   } catch {
     return null;
   }
 }
 
-export function savePageHeight(boardName: string, height: number) {
+function saveNumber(key: string, value: number) {
   try {
-    localStorage.setItem(PREFIX + "pageHeight:" + boardName, String(height));
+    localStorage.setItem(PREFIX + key, String(value));
   } catch {
     // Not remembered this time; nothing else depends on it.
   }
 }
 
-/** The page last shown per board, so reopening a board resumes there. */
-export function loadLastPage(boardName: string): number {
-  try {
-    return Math.max(0, Number(localStorage.getItem(PREFIX + "lastPage:" + boardName)) || 0);
-  } catch {
-    return 0;
-  }
-}
+export const loadPageHeight = (board: string) => loadNumber("pageHeight:" + board);
+export const savePageHeight = (board: string, height: number) => saveNumber("pageHeight:" + board, height);
 
-export function saveLastPage(boardName: string, index: number) {
-  try {
-    localStorage.setItem(PREFIX + "lastPage:" + boardName, String(index));
-  } catch {
-    // Not remembered this time; the board opens on page 1 next time.
-  }
-}
+/** The page last shown (0-based), so reopening a board resumes there. */
+export const loadLastPage = (board: string) => loadNumber("lastPage:" + board) ?? 0;
+export const saveLastPage = (board: string, index: number) => saveNumber("lastPage:" + board, index);
+
+/** When a board was last opened (ms since 1970), for the "Recently opened" sort. */
+export const loadLastOpened = (board: string) => loadNumber("opened:" + board) ?? 0;
+export const saveLastOpened = (board: string) => saveNumber("opened:" + board, Date.now());
 
 function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T> | void) {
   return new Promise<T | null>((resolve) => {
@@ -51,7 +46,7 @@ function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => 
       open.onsuccess = () => {
         const tx = open.result.transaction("kv", mode);
         const req = run(tx.objectStore("kv"));
-        tx.oncomplete = () => resolve(req ? req.result : null);
+        tx.oncomplete = () => resolve(req ? (req.result ?? null) : null);
         tx.onerror = () => resolve(null);
       };
     } catch {
@@ -60,5 +55,27 @@ function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => 
   });
 }
 
-export const saveLastFile = (handle: FileSystemFileHandle) => withStore("readwrite", (s) => void s.put(handle, "lastFile"));
-export const loadLastFile = () => withStore<FileSystemFileHandle>("readonly", (s) => s.get("lastFile"));
+/** A connected folder, or a single board file opened on its own. */
+export type Source = FileSystemDirectoryHandle | FileSystemFileHandle;
+
+export async function loadSources(): Promise<Source[]> {
+  const sources = await withStore<Source[]>("readonly", (s) => s.get("sources"));
+  if (sources) return sources;
+  // v0.0.2 and earlier remembered just the last opened file.
+  const lastFile = await withStore<FileSystemFileHandle>("readonly", (s) => s.get("lastFile"));
+  return lastFile ? [lastFile] : [];
+}
+
+export const saveSources = (sources: Source[]) => withStore("readwrite", (s) => void s.put(sources, "sources"));
+
+/** A board's first page as an image, tagged with what it was drawn from. */
+export interface CachedThumbnail {
+  /** Changes whenever the file or its page height does, which makes the image stale. */
+  stamp: string;
+  image: Blob;
+  pageCount: number;
+}
+
+export const loadThumbnail = (id: string) => withStore<CachedThumbnail>("readonly", (s) => s.get("thumb:" + id));
+export const saveThumbnail = (id: string, thumb: CachedThumbnail) =>
+  withStore("readwrite", (s) => void s.put(thumb, "thumb:" + id));

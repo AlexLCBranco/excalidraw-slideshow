@@ -18,6 +18,8 @@
   --accent: #a8a5ff;
   --accent-text: #121212;
   --laser: #ff3b30;
+  --warning: #f0b429;
+  --warning-bg: rgb(240 180 41 / 0.1);
 
   /* ---- Spacing scale (4px base) ---- */
   --space-1: 4px;
@@ -32,6 +34,11 @@
   /* ---- Sizes ---- */
   --content-wide: 1400px;
   --thumb-min: 220px;
+  --card-min: 260px;
+  --card-aspect: 16 / 10;
+  --search-width: 420px;
+  --hero-width: 520px;
+  --control-height: 36px;
   --thumb-max-height: 360px;
   --icon-button: 36px;
   --progress-height: 3px;
@@ -59,6 +66,8 @@
   /* ---- Motion ---- */
   --duration-fast: 120ms;
   --duration-slow: 300ms;
+  --duration-pulse: 1.6s;
+  --duration-spin: 0.9s;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
   /* ---- Stacking, above Excalidraw's own layers ---- */

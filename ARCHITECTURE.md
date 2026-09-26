@@ -5,9 +5,10 @@
 Dependencies point in one direction only.
 
 ```
-app/        the two screens and switching between them
-features/   open/ (picking and parsing a board) and slideshow/ (presenting it)
-lib/        browser storage: page height per board, last-opened file handle
+app/        the two screens, chosen by the address bar
+features/   library/ (the dashboard), open/ (picking and loading a board),
+            slideshow/ (presenting it)
+lib/        browser APIs: storage, folder scanning, drawing pages to images
 domain/     pure TypeScript: board parsing, page detection, camera maths. No React.
 styles/     design tokens + global reset
 ```
@@ -74,15 +75,41 @@ board).
   trail. Sitting over the canvas, it also stops pointing from panning.
 - **Resume.** The last page shown is saved per board and restored on open.
 
-## Opening boards (`features/open/`)
+## Addresses (`app/useRoute.ts`)
 
-Edge and Chrome support the File System Access API, so the picker returns a
-file handle. It's stored in IndexedDB, which lets "Reopen <board>" work
-across launches after one permission prompt. Drag-and-drop and a plain
-`<input type=file>` fallback go through the same `parseBoard`.
+The address bar is the app's state: `/` is the library, `/view/<board id>#N`
+is page N of a board. Opening a board pushes a history entry and Esc goes
+Back, so the browser's Back/Forward, Refresh and bookmarks all work. Page
+changes replace the `#N` without adding history. `App` follows the address:
+it loads the board it names, or lets go of the open one (boards are tens of
+MB). A board that fails to load, or isn't in the library, sends you back to
+the library with a banner.
+
+## Library (`features/library/`, `lib/library.ts`)
+
+The site can't see the disk by itself, so the owner connects **sources**:
+folders (`showDirectoryPicker`, Edge/Chrome) and single files (picker or
+drag-and-drop). Their handles live in IndexedDB. On every visit the browser
+may ask again before reading them; Chrome and Edge offer "Allow on every
+visit" to stop that. The library shows a "Show my boards" button for it,
+because the prompt needs a click.
+
+Folders are scanned for `*.excalidraw` up to 4 levels deep, skipping hidden
+folders (`.obsidian`, `.trash`). The list refreshes when the window regains
+focus, so boards saved in the meantime appear. A board's id is its source's
+name plus its path (`New folder/worldcupboard2026.excalidraw`). A file
+already inside a connected folder isn't added twice, and connecting a folder
+absorbs sources inside it.
+
+Card pictures are the first page, drawn the same way as the page grid. Each
+means parsing the whole board, so they're made one at a time, only when the
+card scrolls into view, and cached in IndexedDB with the file's
+size/modified time and the page height, so they're redrawn only when stale.
 
 Files are read fresh on every open, so edits made on excalidraw.com and
-re-saved to the same file show up the next time the board is opened.
+re-saved to the same file show up the next time the board is opened. Browsers
+without the File System Access API (Firefox, Safari) still get "Open a file"
+and drag-and-drop, just not a remembered library.
 
 ## Offline
 
@@ -100,6 +127,8 @@ belongs to the page's address.
 
 ## History
 
+- **v0.0.3** — Library dashboard (connected folders, board cards with
+  pictures, search, sort) and real addresses per board and page.
 - **v0.0.2** — Control bar, page grid with thumbnails, go to page by number,
   full screen, laser pointer, shortcut help, resume at the last page.
 - **v0.0.1** — Replaces a single-file HTML viewer (Excalidraw from a CDN,

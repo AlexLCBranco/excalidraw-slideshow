@@ -20,6 +20,9 @@ import { useViewportSize } from "./useViewportSize";
 
 interface Props {
   board: Board;
+  /** The page to start on (0-based), e.g. from the address bar. Otherwise the board resumes where it was left. */
+  initialPage: number | null;
+  onPageChange: (index: number) => void;
   onOpenAnother: () => void;
   onClose: () => void;
 }
@@ -37,13 +40,14 @@ type Overlay = "none" | "grid" | "help";
  * component owns the camera, moving it page to page and covering whatever of
  * the neighbouring pages would still be visible above and below.
  */
-export function Slideshow({ board, onOpenAnother, onClose }: Props) {
+export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onClose }: Props) {
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [ready, setReady] = useState(false);
   const [pageHeight, setPageHeight] = useState(() => loadPageHeight(board.name) ?? DEFAULT_PAGE_HEIGHT);
   const pages = useMemo(() => findPages(board.elements, pageHeight), [board.elements, pageHeight]);
-  const [resumedAt] = useState(() => Math.min(loadLastPage(board.name), pages.length - 1));
-  const [index, setIndex] = useState(resumedAt);
+  // Only a resume (no page in the address) is announced.
+  const [resumedAt] = useState(() => (initialPage === null ? Math.min(loadLastPage(board.name), pages.length - 1) : 0));
+  const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [laser, setLaser] = useState(false);
   const [typed, setTyped] = useState("");
@@ -79,7 +83,10 @@ export function Slideshow({ board, onOpenAnother, onClose }: Props) {
     });
   }, [api, ready, view, releases]);
 
-  useEffect(() => saveLastPage(board.name, current), [board.name, current]);
+  useEffect(() => {
+    saveLastPage(board.name, current);
+    onPageChange(current);
+  }, [board.name, current, onPageChange]);
 
   useEffect(() => {
     if (ready && resumedAt > 0) showToast(`Resumed at page ${resumedAt + 1} · Home for page 1`);
