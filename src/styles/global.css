@@ -1,0 +1,26 @@
+@import "./tokens.css";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/*
+ * Excalidraw's own chrome that is useless in a slideshow: the menu, zoom
+ * buttons, help icon and "Scroll back to content". Its class names are not a
+ * public API, so an Excalidraw upgrade may need these selectors updated.
+ */
+.excalidraw .App-menu_top__left,
+.excalidraw .layer-ui__wrapper__footer-left,
+.excalidraw .help-icon,
+.excalidraw .scroll-back-to-content {
+  display: none !important;
+}

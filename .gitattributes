@@ -1,0 +1,4 @@
+# Normalise line endings: store LF in the repo, check out the platform default.
+* text=auto
+# Windows needs CRLF to run batch files reliably.
+*.bat text eol=crlf

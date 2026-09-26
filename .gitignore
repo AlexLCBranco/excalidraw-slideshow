@@ -1,0 +1,19 @@
+# Logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+*.local
+
+# Copied from node_modules by scripts/copy-fonts.mjs on every install
+public/fonts
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Your boards never belong in the repo
+*.excalidraw
