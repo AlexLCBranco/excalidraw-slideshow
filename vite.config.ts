@@ -7,6 +7,8 @@ import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 
 function commitSha() {
+  // Vercel builds have no .git folder, but say which commit they're building.
+  if (process.env.VERCEL_GIT_COMMIT_SHA) return process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
   try {
     return execSync("git rev-parse --short HEAD").toString().trim();
   } catch {
@@ -62,8 +64,8 @@ export default defineConfig({
   // address must not change between launches.
   server: { port: 5180, strictPort: true },
   preview: { port: 5181, strictPort: true },
-  // Excalidraw itself is a ~2 MB chunk. It's served from this machine, so the
-  // default 500 kB warning is noise here.
+  // Excalidraw itself is a ~2 MB chunk. It's downloaded once and then served
+  // by the service worker, so the default 500 kB warning is noise here.
   build: { chunkSizeWarningLimit: 2500 },
   define: {
     // Shown on screen by VersionBadge; bumped by hand in every shipped commit.
