@@ -7,7 +7,7 @@ The record of what was built and why lives in [`ARCHITECTURE.md`](./ARCHITECTURE
 
 | Item | Owner |
 |------|-------|
-| Deploy to Vercel | Claude |
+| _nothing_ | — |
 
 ## Queued
 

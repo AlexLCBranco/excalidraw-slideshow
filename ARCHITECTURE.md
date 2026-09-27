@@ -136,12 +136,18 @@ the address bar). Installed, it opens in its own window, and its
 slideshow. The file arrives through `window.launchQueue`
 (`features/open/useLaunchFiles.ts`) and joins the library like any opened file.
 
-## Launching
+## Hosting and launching
 
-`Start Slideshow.bat` installs on first run, rebuilds (about 2 s), then runs
-`vite preview --open` on port 5181. If the port is already serving, it just
-opens a new tab. Both ports are fixed because the IndexedDB file handle
-belongs to the page's address.
+The site is hosted on Vercel (https://excalidraw-slideshow.vercel.app), which
+builds every push to `main` from the private GitHub repo. It's a static
+build; `vercel.json` sends `/view/...` addresses to `index.html`, keeps
+`sw.js` uncached (so updates are noticed) and caches hashed assets forever.
+Hosting doesn't change where boards live: the site only reads folders the
+owner connects in the browser.
+
+`Start Slideshow.bat` is the local fallback: it installs on first run,
+rebuilds (about 2 s), then runs `vite preview --open` on port 5181. Both
+local ports are fixed because connected folders are remembered per address.
 
 ## History
 

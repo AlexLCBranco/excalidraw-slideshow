@@ -4,11 +4,13 @@ Read this first. It is loaded automatically at the start of every session.
 
 ## What this project is
 
-A local app that presents any `.excalidraw` board as a slideshow: open a
+A web app (https://excalidraw-slideshow.vercel.app, installable and fully
+offline) that presents any `.excalidraw` board as a slideshow: open a
 board, then the left and right arrow keys move page to page. The owner draws
 long boards on excalidraw.com with each "page" stacked vertically, and the
 Obsidian Excalidraw plugin can't handle their size (7–35 MB, many embedded
-images). This app replaces that.
+images). This app replaces that. Boards never leave the owner's PC: the
+browser reads them from folders the owner connects.
 
 The owner is new to Windows dev tooling and learning frontend development
 (their main project is Boardkit, `C:\Users\alexc\Projects\boardkit`; this
@@ -24,7 +26,9 @@ click-by-click steps. Explain design decisions briefly as you go.
 - **Arrow-key paging is the product.** Anything that makes ←/→ less reliable
   is a regression, whatever else it gains.
 - **Works offline.** No runtime CDN loads. Excalidraw and its fonts ship from
-  `node_modules` / `public/fonts`.
+  `node_modules` / `public/fonts`, and the service worker precaches the build.
+- **Never reload mid-presentation.** New versions wait for "Update now" on
+  the library.
 
 ## Priorities, in order
 
@@ -72,8 +76,11 @@ Subject line: a short imperative description. Body: a short bullet list of
 what changed and why, not a file listing. Do not commit work in progress.
 
 Bump `package.json`'s patch version (0.0.1 -> 0.0.2 -> ...) in every commit
-that ships a user-visible change. It's shown on the open screen
+that ships a user-visible change. It's shown on the library screen
 (`VersionBadge`), so the owner can check they're running the latest build.
+
+Remote: `github.com/AlexLCBranco/excalidraw-slideshow` (private). Vercel
+deploys every push to `main`, so push after committing.
 
 ## Commands
 
@@ -84,6 +91,11 @@ npm test         # unit tests for domain/
 npm run lint     # oxlint
 ```
 
-The owner launches the app with `Start Slideshow.bat` (Desktop shortcut). It
-rebuilds, then serves `dist/` on :5181. The ports are fixed on purpose: the
-browser keeps the "Reopen last board" handle per address.
+The owner uses the deployed site, installed as an app from Edge/Chrome.
+`Start Slideshow.bat` still builds and serves `dist/` on :5181 as a local
+fallback. The ports are fixed on purpose: connected folders are remembered
+per address, so every address (5180, 5181, vercel.app) has its own library.
+
+The service worker only runs in production builds. The desktop app's browser
+pane can't register service workers at all, so test offline behaviour in
+headless Edge (e.g. `playwright-core` with `channel: "msedge"`).
