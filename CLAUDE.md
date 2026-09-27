@@ -56,7 +56,8 @@ click-by-click steps. Explain design decisions briefly as you go.
 - **No hardcoded visual constants.** Every colour, spacing, radius, duration
   and z-index comes from `src/styles/tokens.css`. Styling is CSS Modules.
 - **Excalidraw is read-only here.** It runs with `viewModeEnabled`; the app
-  only moves its camera through `updateScene`. Don't add editing.
+  moves its camera through `updateScene`, and may change how elements are
+  drawn for the moment (e.g. opacity), never saved. Don't add editing.
 - Excalidraw's internal class names (hidden in `styles/global.css`) are not a
   public API. After upgrading `@excalidraw/excalidraw`, check the menu, zoom
   buttons and help icon are still hidden.

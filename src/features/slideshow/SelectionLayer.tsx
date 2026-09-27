@@ -22,6 +22,9 @@ interface Props {
   onSelect: (selected: SceneElement[]) => void;
   /** What can be done with a selection, shown as buttons above it. */
   actions: readonly SelectionAction[];
+  /** The selection's opacity (0 to 100), shown as a slider next to the actions. */
+  opacity: number;
+  onOpacity: (opacity: number) => void;
 }
 
 /**
@@ -29,7 +32,7 @@ interface Props {
  * instead of panning, and a click picks one element. Selected elements are
  * outlined, with their actions just above them.
  */
-export function SelectionLayer({ elements, camera, selected, onSelect, actions }: Props) {
+export function SelectionLayer({ elements, camera, selected, onSelect, actions, opacity, onOpacity }: Props) {
   const [drag, setDrag] = useState<{ x: number; y: number; box: Box } | null>(null);
 
   // Ctrl+C copies, as on excalidraw.com. The first action is the copy.
@@ -118,6 +121,18 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions }
               {a.label}
             </button>
           ))}
+          <label className={styles.opacity} title="Opacity, only while presenting: the board is never changed">
+            Opacity
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={opacity}
+              onChange={(e) => onOpacity(Number(e.target.value))}
+              // The slider needs the mouse down to drag; the arrow keys still page, as they're caught first.
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          </label>
         </div>
       )}
     </div>

@@ -118,6 +118,14 @@ laser, then the board).
   Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
   into excalidraw.com as shapes. None of them change the board.
+- **Opacity.** A slider next to the selection actions dims the selected
+  elements, like excalidraw.com's, but only on screen. The chosen values
+  live in `Slideshow` state (`domain/opacity.ts`) and are pushed to
+  Excalidraw with `updateScene(..., CaptureUpdateAction.NEVER)`, starting
+  from Excalidraw's own scene elements so nothing it restored on load is
+  lost. `board.elements` keeps the originals, so Copy and the page grid
+  never see the change, and closing the board forgets it. This is the one
+  place the app changes what Excalidraw draws rather than where it looks.
 - **Resume.** The last page shown is saved per board and restored on open.
 
 ## Addresses (`app/useRoute.ts`)

@@ -1,8 +1,9 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { CaptureUpdateAction, Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useState } from "react";
 
+import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { clipboardText } from "../../domain/selection";
@@ -107,6 +108,17 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // Like a zoom, a selection belongs to the page it was made on.
   const [selection, setSelection] = useState<{ page: number; elements: SceneElement[] } | null>(null);
   const selected = selection?.page === current ? selection.elements : [];
+
+  // Opacity changes are only a view: Excalidraw redraws with them, but they last until the
+  // board is closed and never reach the file. Copy and the page grid still see the originals.
+  const [opacities, setOpacities] = useState<Opacities>({});
+  useEffect(() => {
+    if (!api || !ready || !Object.keys(opacities).length) return;
+    api.updateScene({
+      elements: withOpacities(api.getSceneElementsIncludingDeleted(), opacities),
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
+  }, [api, ready, opacities]);
 
   // In view mode Excalidraw pans on every drag, so the page is re-fitted whenever the mouse is released.
   const [releases, setReleases] = useState(0);
@@ -271,6 +283,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           selected={selected}
           onSelect={(elements) => setSelection({ page: current, elements })}
           actions={selectionActions}
+          opacity={selected.length ? opacityOf(selected[0], opacities) : 100}
+          onOpacity={(value) =>
+            setOpacities((o) => ({ ...o, ...Object.fromEntries(selected.map((e) => [e.id, value])) }))
+          }
         />
       )}
       {!ready && <div className={styles.loading}>Loading {board.name}…</div>}

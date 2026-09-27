@@ -49,6 +49,7 @@
   --laser-trail-width: 5px;
   --selection-width: 1.5px;
   --selection-fill: rgb(168 165 255 / 0.12);
+  --slider-width: 120px;
 
   /* ---- Radii ---- */
   --radius-sm: 4px;
