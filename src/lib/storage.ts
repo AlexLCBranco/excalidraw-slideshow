@@ -37,6 +37,23 @@ export const saveLastPage = (board: string, index: number) => saveNumber("lastPa
 export const loadLastOpened = (board: string) => loadNumber("opened:" + board) ?? 0;
 export const saveLastOpened = (board: string) => saveNumber("opened:" + board, Date.now());
 
+/** Whether the slideshow's control bar stays on screen (the default) or hides until the mouse moves. */
+export function loadBarPinned() {
+  try {
+    return localStorage.getItem(PREFIX + "barPinned") !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function saveBarPinned(pinned: boolean) {
+  try {
+    localStorage.setItem(PREFIX + "barPinned", String(pinned));
+  } catch {
+    // Not remembered this time; the bar shows by default.
+  }
+}
+
 function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T> | void) {
   return new Promise<T | null>((resolve) => {
     try {

@@ -39,6 +39,8 @@
   --search-width: 420px;
   --hero-width: 520px;
   --control-height: 36px;
+  /* Strip kept free at the bottom of the slideshow for the control bar: bar + its gap to the edge + breathing room. */
+  --bar-space: 72px;
   --thumb-max-height: 360px;
   --icon-button: 36px;
   --progress-height: 3px;

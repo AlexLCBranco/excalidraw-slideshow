@@ -59,9 +59,13 @@ on every `pointerup`: a drag can never leave the page off-centre.
 
 ### Controls
 
-A floating `ControlBar` fades in when the mouse moves and out after 2.5 s
-(the cursor hides with it). A progress line along the bottom edge and a
-corner counter stay visible. `useSlideKeys` is the one keyboard entry point;
+The `ControlBar` stays on screen by default. It gets its own strip at the
+bottom (`--bar-space`): the page is fitted into the area above it and the
+bottom mask covers the strip, so the bar never hides any of the drawing. `H`
+hides it (remembered): the page then uses the full height and the bar fades
+in only while the mouse moves. A progress line along the bottom edge is
+always visible, and a corner counter shows whenever the bar is hidden. The
+cursor hides after 2.5 s without moving. `useSlideKeys` is the one keyboard entry point;
 Esc backs out one step at a time (typed page number, overlay, laser, then the
 board).
 
@@ -151,6 +155,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.5** — The control bar stays visible, with pages fitted above it;
+  `H` hides it.
 - **v0.0.4** — Installable app: offline service worker, update banner, opens
   `.excalidraw` files from File Explorer.
 - **v0.0.3** — Library dashboard (connected folders, board cards with

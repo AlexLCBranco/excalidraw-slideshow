@@ -5,7 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 
 import { DEFAULT_PAGE_HEIGHT, findPages, fitPage, pageAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
-import { loadLastPage, loadPageHeight, saveLastPage, savePageHeight } from "../../lib/storage";
+import {
+  loadBarPinned,
+  loadLastPage,
+  loadPageHeight,
+  saveBarPinned,
+  saveLastPage,
+  savePageHeight,
+} from "../../lib/storage";
 import { ControlBar } from "./ControlBar";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
@@ -35,6 +42,9 @@ const TYPED_PAGE_MS = 3000;
 
 type Overlay = "none" | "grid" | "help";
 
+/** A length token from tokens.css, in px, for layout maths done in JS. */
+const tokenPx = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+
 /**
  * Shows one page of a board at a time. Excalidraw runs read-only; this
  * component owns the camera, moving it page to page and covering whatever of
@@ -52,6 +62,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [laser, setLaser] = useState(false);
   const [typed, setTyped] = useState("");
   const [barHovered, setBarHovered] = useState(false);
+  const [barPinned, setBarPinned] = useState(loadBarPinned);
   const { width, height } = useViewportSize();
   const [toast, showToast] = useToast();
   const [fullscreen, toggleFullscreen] = useFullscreen();
@@ -60,7 +71,9 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
-  const view = useMemo(() => fitPage(page, width, height), [page, width, height]);
+  // A pinned bar gets its own strip at the bottom, and the page is fitted above it.
+  const barSpace = barPinned ? tokenPx("--bar-space") : 0;
+  const view = useMemo(() => fitPage(page, width, height - barSpace), [page, width, height, barSpace]);
 
   useEffect(() => {
     if (!api) return;
@@ -124,6 +137,11 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     grid: () => toggleOverlay("grid"),
     help: () => toggleOverlay("help"),
     fullscreen: toggleFullscreen,
+    bar: () =>
+      setBarPinned((pinned) => {
+        saveBarPinned(!pinned);
+        return !pinned;
+      }),
     laser: () => setLaser((on) => !on),
     open: onOpenAnother,
     digit: (d) => setTyped((t) => (t + d).slice(-4)),
@@ -150,9 +168,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     [board],
   );
 
-  // With the laser on, the mouse is busy pointing: only show the bar when it heads for the bottom edge.
+  // The bar is always shown unless hidden with H. Hidden, it comes back while
+  // the mouse moves; with the laser on, only when the mouse heads for the bottom edge.
   const barVisible =
-    ready && (overlay !== "none" || barHovered || (pointer.moving && (!laser || pointer.nearBottom)));
+    ready && (barPinned || overlay !== "none" || barHovered || (pointer.moving && (!laser || pointer.nearBottom)));
 
   return (
     <div className={styles.stage} data-cursor-hidden={ready && !pointer.moving && !laser}>
@@ -165,7 +184,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         UIOptions={{ canvasActions: { toggleTheme: false } }}
       />
       <div className={styles.mask} style={{ top: 0, height: view.marginY }} />
-      <div className={styles.mask} style={{ bottom: 0, height: view.marginY }} />
+      <div className={styles.mask} style={{ bottom: 0, height: view.marginY + barSpace }} />
 
       {laser && <LaserPointer />}
       {!ready && <div className={styles.loading}>Loading {board.name}…</div>}

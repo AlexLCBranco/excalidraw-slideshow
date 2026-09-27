@@ -9,6 +9,8 @@ interface Actions {
   bigger: () => void;
   grid: () => void;
   fullscreen: () => void;
+  /** Hide or show the control bar. */
+  bar: () => void;
   laser: () => void;
   help: () => void;
   open: () => void;
@@ -25,6 +27,7 @@ const KEYS: Record<string, keyof Actions> = {
   "-": "smaller", "=": "bigger", "+": "bigger",
   g: "grid", G: "grid",
   f: "fullscreen", F: "fullscreen",
+  h: "bar", H: "bar",
   k: "laser", K: "laser",
   "?": "help",
   o: "open", O: "open",
