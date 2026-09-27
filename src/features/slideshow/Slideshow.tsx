@@ -8,6 +8,7 @@ import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt }
 import type { Board } from "../../domain/scene";
 import { clipboardText } from "../../domain/selection";
 import type { SceneElement } from "../../domain/types";
+import { renderPicture } from "../../lib/render";
 import {
   loadBarPinned,
   loadLastPage,
@@ -180,6 +181,18 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           () => showToast(`Copied ${els.length} · paste into Excalidraw`),
           () => showToast("The browser didn't allow copying"),
         ),
+    },
+    {
+      label: "Copy image",
+      // As seen on screen, opacity changes included. The picture is handed over while it's
+      // still being drawn, so the browser counts the copy as coming from the click.
+      run: (els) =>
+        navigator.clipboard
+          .write([new ClipboardItem({ "image/png": renderPicture(withOpacities(els, opacities), board) })])
+          .then(
+            () => showToast("Copied as an image · paste it anywhere"),
+            () => showToast("The browser didn't allow copying"),
+          ),
     },
     {
       label: "Reset",

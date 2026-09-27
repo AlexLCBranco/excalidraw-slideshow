@@ -118,7 +118,11 @@ laser, then the board).
   what it would pick is outlined live, using the same rule. A selection belongs to its page.
   Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
-  into excalidraw.com as shapes. None of them change the board.
+  into excalidraw.com as shapes. Copy image puts a PNG on the clipboard,
+  drawn by Excalidraw’s `exportToBlob` in dark mode at 2x (at most 4096 px a
+  side) with any opacity changes applied, so it looks as it does on screen
+  (`lib/render.ts`). The blob promise goes straight into the `ClipboardItem`,
+  so the copy still counts as coming from the click. None of them change the board.
 - **Opacity.** A slider next to the selection actions dims the selected
   elements, like excalidraw.com's, but only on screen. The chosen values
   live in `Slideshow` state (`domain/opacity.ts`) and are pushed to
