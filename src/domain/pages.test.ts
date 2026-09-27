@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findPages, fitPage, pageAt } from "./pages";
+import { findPages, fitPage, pageAt, zoomAt } from "./pages";
 import type { SceneElement } from "./types";
 
 let n = 0;
@@ -65,6 +65,16 @@ describe("fitPage", () => {
     expect(view.scrollX).toBe(0);
     expect(view.scrollY).toBe(500);
     expect(view.marginY).toBe(250);
+  });
+});
+
+describe("zoomAt", () => {
+  it("keeps the scene point under the cursor in place", () => {
+    const before = { zoom: 0.5, scrollX: 100, scrollY: 40 };
+    const after = zoomAt(before, 300, 200, 2);
+    const scene = (c: typeof before) => [300 / c.zoom - c.scrollX, 200 / c.zoom - c.scrollY];
+    expect(after.zoom).toBe(2);
+    expect(scene(after)).toEqual(scene(before));
   });
 });
 

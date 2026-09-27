@@ -47,6 +47,8 @@
   --blur-md: 8px;
   --laser-dot-radius: 6px;
   --laser-trail-width: 5px;
+  --selection-width: 1.5px;
+  --selection-fill: rgb(168 165 255 / 0.12);
 
   /* ---- Radii ---- */
   --radius-sm: 4px;
@@ -76,6 +78,7 @@
   /* ---- Stacking, above Excalidraw's own layers ---- */
   --z-overlay: 5;
   --z-laser: 8;
+  --z-select: 8;
   --z-hud: 10;
   --z-modal: 20;
   --z-bar: 30;

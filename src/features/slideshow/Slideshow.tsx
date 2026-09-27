@@ -3,20 +3,26 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useState } from "react";
 
-import { boardPages, DEFAULT_PAGE_HEIGHT, fitPage, pageAt } from "../../domain/pages";
+import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
+import { clipboardText } from "../../domain/selection";
+import type { SceneElement } from "../../domain/types";
 import {
   loadBarPinned,
   loadLastPage,
+  loadMouseMode,
   loadPageHeight,
+  type MouseMode,
   saveBarPinned,
   saveLastPage,
+  saveMouseMode,
   savePageHeight,
 } from "../../lib/storage";
 import { ControlBar } from "./ControlBar";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { PageGrid } from "./PageGrid";
+import { type SelectionAction, SelectionLayer } from "./SelectionLayer";
 import styles from "./Slideshow.module.css";
 import { useFullscreen } from "./useFullscreen";
 import { usePageThumbnails } from "./usePageThumbnails";
@@ -39,8 +45,19 @@ const SETTLE_MS = 300;
 const RESIZE_STEP = 1.1;
 /** A typed page number is forgotten after this long without Enter. */
 const TYPED_PAGE_MS = 3000;
+/** Each zoom button press zooms by this much, up to MAX_ZOOM times the fitted page. */
+const ZOOM_STEP = 1.5;
+const MAX_ZOOM = 8;
 
 type Overlay = "none" | "grid" | "help";
+/** What the mouse does on the page: the remembered mode, or the laser for a while. */
+export type Tool = MouseMode | "laser";
+
+const toAppState = (c: Camera) => ({
+  zoom: { value: c.zoom as NormalizedZoomValue },
+  scrollX: c.scrollX,
+  scrollY: c.scrollY,
+});
 
 /** A length token from tokens.css, in px, for layout maths done in JS. */
 const tokenPx = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
@@ -59,7 +76,9 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [resumedAt] = useState(() => (initialPage === null ? Math.min(loadLastPage(board.name), pages.length - 1) : 0));
   const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
   const [overlay, setOverlay] = useState<Overlay>("none");
+  const [mouseMode, setMouseMode] = useState(loadMouseMode);
   const [laser, setLaser] = useState(false);
+  const tool: Tool = laser ? "laser" : mouseMode;
   const [typed, setTyped] = useState("");
   const [barHovered, setBarHovered] = useState(false);
   const [barPinned, setBarPinned] = useState(loadBarPinned);
@@ -81,6 +100,14 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     return () => clearTimeout(t);
   }, [api]);
 
+  // A zoom lasts until zoomed back out or the page changes. Zoomed, dragging pans freely.
+  const [zoomed, setZoomed] = useState<{ page: number; camera: Camera } | null>(null);
+  const camera = zoomed?.page === current ? zoomed.camera : null;
+
+  // Like a zoom, a selection belongs to the page it was made on.
+  const [selection, setSelection] = useState<{ page: number; elements: SceneElement[] } | null>(null);
+  const selected = selection?.page === current ? selection.elements : [];
+
   // In view mode Excalidraw pans on every drag, so the page is re-fitted whenever the mouse is released.
   const [releases, setReleases] = useState(0);
   useEffect(() => {
@@ -90,11 +117,14 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   }, []);
 
   useEffect(() => {
-    if (!api || !ready) return;
-    api.updateScene({
-      appState: { zoom: { value: view.zoom as NormalizedZoomValue }, scrollX: view.scrollX, scrollY: view.scrollY },
-    });
-  }, [api, ready, view, releases]);
+    if (!api || !ready || camera) return;
+    api.updateScene({ appState: toAppState(view) });
+  }, [api, ready, view, releases, camera]);
+
+  useEffect(() => {
+    if (!api || !ready || !camera) return;
+    api.updateScene({ appState: toAppState(camera) });
+  }, [api, ready, camera]);
 
   useEffect(() => {
     saveLastPage(board.name, current);
@@ -110,6 +140,36 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     const t = setTimeout(() => setTyped(""), TYPED_PAGE_MS);
     return () => clearTimeout(t);
   }, [typed]);
+
+  // Hand and select are remembered; the laser is picked again to turn it off.
+  // Only the hand pans, so leaving it while zoomed first keeps the view where a drag left it.
+  const chooseTool = (t: Tool) => {
+    if (tool === "hand" && t !== "hand" && camera && api) {
+      const s = api.getAppState();
+      setZoomed({ page: current, camera: { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY } });
+    }
+    if (t === "laser") {
+      setLaser((on) => !on);
+    } else {
+      setLaser(false);
+      setMouseMode(t);
+      saveMouseMode(t);
+    }
+    setSelection(null);
+  };
+
+  // What can be done with selected elements. The board itself is never changed.
+  const selectionActions: SelectionAction[] = [
+    {
+      label: "Copy",
+      shortcut: "Ctrl+C",
+      run: (els) =>
+        navigator.clipboard.writeText(clipboardText(els, board.files)).then(
+          () => showToast(`Copied ${els.length} · paste into Excalidraw`),
+          () => showToast("The browser didn't allow copying"),
+        ),
+    },
+  ];
 
   const go = (i: number) => setIndex(Math.max(0, Math.min(pages.length - 1, i)));
   const toggleOverlay = (o: Overlay) => setOverlay((cur) => (cur === o ? "none" : o));
@@ -127,6 +187,16 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     showToast(`${nextPages.length} pages`);
   };
 
+  // Zooms around the middle of the screen, starting from the live camera so a drag is kept.
+  const zoomBy = (factor: number) => {
+    if (!api) return;
+    const s = api.getAppState();
+    const from = { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY };
+    const zoom = Math.min(from.zoom * factor, view.zoom * MAX_ZOOM);
+    if (zoom <= view.zoom * 1.001) return setZoomed(null);
+    setZoomed({ page: current, camera: zoomAt(from, width / 2, (height - barSpace) / 2, zoom) });
+  };
+
   useSlideKeys(ready, {
     next: () => go(current + 1),
     previous: () => go(current - 1),
@@ -142,7 +212,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         saveBarPinned(!pinned);
         return !pinned;
       }),
-    laser: () => setLaser((on) => !on),
+    laser: () => chooseTool("laser"),
+    mouseMode: () => chooseTool(tool === "select" ? "hand" : "select"),
     open: onOpenAnother,
     digit: (d) => setTyped((t) => (t + d).slice(-4)),
     enter: () => {
@@ -150,10 +221,11 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       setTyped("");
       setOverlay("none");
     },
-    // Esc backs out one step at a time: typed number, overlay, laser, then the board.
+    // Esc backs out one step at a time: typed number, overlay, selection, laser, then the board.
     close: () => {
       if (typed) setTyped("");
       else if (overlay !== "none") setOverlay("none");
+      else if (selected.length) setSelection(null);
       else if (laser) setLaser(false);
       else onClose();
     },
@@ -171,7 +243,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // The bar is always shown unless hidden with H. Hidden, it comes back while
   // the mouse moves; with the laser on, only when the mouse heads for the bottom edge.
   const barVisible =
-    ready && (barPinned || overlay !== "none" || barHovered || (pointer.moving && (!laser || pointer.nearBottom)));
+    ready &&
+    (barPinned || overlay !== "none" || barHovered || (pointer.moving && (tool !== "laser" || pointer.nearBottom)));
 
   return (
     <div className={styles.stage} data-cursor-hidden={ready && !pointer.moving && !laser}>
@@ -183,10 +256,23 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         zenModeEnabled
         UIOptions={{ canvasActions: { toggleTheme: false } }}
       />
-      <div className={styles.mask} style={{ top: 0, height: view.marginY }} />
-      <div className={styles.mask} style={{ bottom: 0, height: view.marginY + barSpace }} />
+      {!camera && (
+        <>
+          <div className={styles.mask} style={{ top: 0, height: view.marginY }} />
+          <div className={styles.mask} style={{ bottom: 0, height: view.marginY + barSpace }} />
+        </>
+      )}
 
-      {laser && <LaserPointer />}
+      {tool === "laser" && <LaserPointer />}
+      {tool === "select" && ready && (
+        <SelectionLayer
+          elements={board.elements}
+          camera={camera ?? view}
+          selected={selected}
+          onSelect={(elements) => setSelection({ page: current, elements })}
+          actions={selectionActions}
+        />
+      )}
       {!ready && <div className={styles.loading}>Loading {board.name}…</div>}
 
       {ready && (
@@ -201,13 +287,17 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
             count={pages.length}
             pageName={page.name}
             fullscreen={fullscreen}
-            laser={laser}
+            tool={tool}
             gridOpen={overlay === "grid"}
+            zoom={camera ? camera.zoom / view.zoom : 1}
             onBack={onClose}
             onPrevious={() => go(current - 1)}
             onNext={() => go(current + 1)}
             onGrid={() => toggleOverlay("grid")}
-            onLaser={() => setLaser((on) => !on)}
+            onZoomIn={() => zoomBy(ZOOM_STEP)}
+            onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
+            onZoomReset={() => setZoomed(null)}
+            onTool={chooseTool}
             onFullscreen={toggleFullscreen}
             onHelp={() => toggleOverlay("help")}
             onHover={setBarHovered}

@@ -12,6 +12,8 @@ interface Actions {
   /** Hide or show the control bar. */
   bar: () => void;
   laser: () => void;
+  /** Switch between the select and hand modes. */
+  mouseMode: () => void;
   help: () => void;
   open: () => void;
   close: () => void;
@@ -29,6 +31,7 @@ const KEYS: Record<string, keyof Actions> = {
   f: "fullscreen", F: "fullscreen",
   h: "bar", H: "bar",
   k: "laser", K: "laser",
+  v: "mouseMode", V: "mouseMode",
   "?": "help",
   o: "open", O: "open",
   Escape: "close",

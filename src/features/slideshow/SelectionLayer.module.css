@@ -1,0 +1,69 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-select);
+  cursor: crosshair;
+}
+
+.drawing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* The box being dragged out. */
+.box {
+  fill: var(--selection-fill);
+  stroke: var(--accent);
+  stroke-width: var(--selection-width);
+}
+
+/* One per selected element. */
+.outline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: var(--selection-width);
+}
+
+/* Sits centred just above the selection. */
+.actions {
+  position: absolute;
+  translate: -50% calc(-100% - var(--space-2));
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: calc(100vw - var(--space-4));
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-md));
+  cursor: default;
+  white-space: nowrap;
+}
+
+.count {
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.action {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.action:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+}

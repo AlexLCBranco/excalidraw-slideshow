@@ -1,5 +1,13 @@
 import styles from "./ControlBar.module.css";
 import { Icon, type IconName } from "./icons";
+import type { Tool } from "./Slideshow";
+
+/** What the mouse does on the page, as on excalidraw.com's toolbar. */
+const TOOLS: [Tool, string][] = [
+  ["hand", "Hand: drag to move around a zoomed page (V)"],
+  ["select", "Select: drag a box over elements (V)"],
+  ["laser", "Laser pointer (K)"],
+];
 
 interface Props {
   visible: boolean;
@@ -7,13 +15,18 @@ interface Props {
   count: number;
   pageName: string;
   fullscreen: boolean;
-  laser: boolean;
+  tool: Tool;
   gridOpen: boolean;
+  /** Zoom relative to the fitted page (1 = whole page). */
+  zoom: number;
   onBack: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onGrid: () => void;
-  onLaser: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomReset: () => void;
+  onTool: (tool: Tool) => void;
   onFullscreen: () => void;
   onHelp: () => void;
   onHover: (hovering: boolean) => void;
@@ -39,8 +52,18 @@ export function ControlBar(p: Props) {
       </button>
       <Button icon="next" label="Next page (→)" onClick={p.onNext} disabled={p.index === p.count - 1} />
       <span className={styles.divider} />
+      <Button icon="zoomOut" label="Zoom out" onClick={p.onZoomOut} disabled={p.zoom <= 1} />
+      <button className={styles.counter} onClick={p.onZoomReset} title="Whole page">
+        {Math.round(p.zoom * 100)}%
+      </button>
+      <Button icon="zoomIn" label="Zoom in (drag to look around)" onClick={p.onZoomIn} />
+      <span className={styles.divider} />
       <Button icon="grid" label="All pages (G)" onClick={p.onGrid} active={p.gridOpen} />
-      <Button icon="laser" label="Laser pointer (K)" onClick={p.onLaser} active={p.laser} />
+      <span className={styles.divider} />
+      {TOOLS.map(([tool, label]) => (
+        <Button key={tool} icon={tool} label={label} onClick={() => p.onTool(tool)} active={p.tool === tool} />
+      ))}
+      <span className={styles.divider} />
       <Button
         icon={p.fullscreen ? "exitFullscreen" : "fullscreen"}
         label={p.fullscreen ? "Exit full screen (F)" : "Full screen (F)"}

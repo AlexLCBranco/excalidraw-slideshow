@@ -8,13 +8,14 @@ const SHORTCUTS: [keys: string[], action: string][] = [
   [["F"], "full screen"],
   [["H"], "hide / show the control bar"],
   [["K"], "laser pointer"],
+  [["V"], "select / hand (select: drag a box, Ctrl+C copies)"],
   [["-", "="], "smaller / bigger pages (boards without frames)"],
   [["O"], "open another board"],
   [["?"], "these shortcuts"],
   [["Esc"], "close / back"],
 ];
 
-/** The keyboard shortcuts, shown on the open screen and in the help overlay. */
+/** The keyboard and mouse shortcuts, shown on the open screen and in the help overlay. */
 export function ShortcutList() {
   return (
     <dl className={styles.keys}>

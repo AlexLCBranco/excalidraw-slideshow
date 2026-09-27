@@ -54,6 +54,25 @@ export function saveBarPinned(pinned: boolean) {
   }
 }
 
+/** What dragging on a slide does: select elements (the default) or move around a zoomed page. */
+export type MouseMode = "select" | "hand";
+
+export function loadMouseMode(): MouseMode {
+  try {
+    return localStorage.getItem(PREFIX + "mouseMode") === "hand" ? "hand" : "select";
+  } catch {
+    return "select";
+  }
+}
+
+export function saveMouseMode(mode: MouseMode) {
+  try {
+    localStorage.setItem(PREFIX + "mouseMode", mode);
+  } catch {
+    // Not remembered this time; select is the default.
+  }
+}
+
 /** A group of boards put together by hand in the library, presented back to back. */
 export interface SavedGroup {
   id: string;

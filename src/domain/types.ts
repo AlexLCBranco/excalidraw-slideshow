@@ -20,6 +20,8 @@ export interface SceneElement {
   boundElements?: readonly { id: string; type: string }[] | null;
   startBinding?: { elementId: string } | null;
   endBinding?: { elementId: string } | null;
+  /** The embedded image an image element shows, a key into the board's `files`. */
+  fileId?: string | null;
   /** Excalidraw's stacking-order key. */
   index?: string | null;
 }

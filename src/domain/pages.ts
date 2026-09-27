@@ -138,6 +138,24 @@ export function fitPage(page: Page, width: number, height: number) {
   };
 }
 
+export interface Camera {
+  zoom: number;
+  scrollX: number;
+  scrollY: number;
+}
+
+/**
+ * The camera zoomed to `zoom`, keeping the scene point under screen point
+ * (`x`, `y`) where it is, so the drawing grows around the cursor.
+ */
+export function zoomAt(camera: Camera, x: number, y: number, zoom: number): Camera {
+  return {
+    zoom,
+    scrollX: camera.scrollX + x / zoom - x / camera.zoom,
+    scrollY: camera.scrollY + y / zoom - y / camera.zoom,
+  };
+}
+
 /** The page containing scene height `y`, used to stay in place when pages change. */
 export function pageAt(pages: readonly Page[], y: number) {
   const i = pages.findIndex((p) => p.y1 > y);

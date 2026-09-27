@@ -95,8 +95,8 @@ hides it (remembered): the page then uses the full height and the bar fades
 in only while the mouse moves. A progress line along the bottom edge is
 always visible, and a corner counter shows whenever the bar is hidden. The
 cursor hides after 2.5 s without moving. `useSlideKeys` is the one keyboard entry point;
-Esc backs out one step at a time (typed page number, overlay, laser, then the
-board).
+Esc backs out one step at a time (typed page number, overlay, selection,
+laser, then the board).
 
 - **Page grid (G).** Thumbnails come from Excalidraw's `exportToCanvas`,
   which crops exactly to a frame when given `exportingFrame`. Every page is
@@ -106,6 +106,18 @@ board).
 - **Laser (K).** Excalidraw's own laser can't run in view mode (the drag pans
   first), so `LaserPointer` is an SVG overlay drawing a dot and a fading
   trail. Sitting over the canvas, it also stops pointing from panning.
+- **Hand / Select / Laser.** A switcher on the bar, as on excalidraw.com.
+  Hand lets Excalidraw pan (only useful zoomed in); Select is the default,
+  since an unzoomed drag would only snap back. V swaps the two, and the
+  choice is remembered. The laser is temporary and returns to that choice.
+- **Select (V).** Excalidraw can't select in view mode either, so
+  `SelectionLayer` is the same kind of overlay: a drag draws a box, a click
+  picks the topmost element. Which elements that means is worked out in
+  `domain/selection.ts` from element bounds, widened to whole groups and the
+  text inside shapes, as excalidraw.com does. A selection belongs to its page.
+  Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
+  is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
+  into excalidraw.com as shapes. None of them change the board.
 - **Resume.** The last page shown is saved per board and restored on open.
 
 ## Addresses (`app/useRoute.ts`)
@@ -186,6 +198,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.8** — Zoom buttons, a Hand / Select / Laser switcher, and selecting: drag a box over elements and
+  copy them.
 - **v0.0.7** — Groups: play the boards of a folder, or boards picked by
   hand, back to back as one slideshow.
 - **v0.0.5** — The control bar stays visible, with pages fitted above it;
