@@ -21,7 +21,7 @@ _Nothing queued._
 - Editing boards. Editing happens on excalidraw.com; this app only presents.
 - Writing to board files, including adding frames. The owner's files are
   read-only to this app.
-- Spotlight (dimming everything outside a dragged box). The owner turned
-  it down.
+- Spotlight (dimming everything outside a dragged box) and zoom to a
+  dragged box. The owner turned both down.
 - Uploading or sharing boards. The site is hosted, but boards never leave
   the owner's PC: the browser reads them from a folder the owner picks.
