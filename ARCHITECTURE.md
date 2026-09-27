@@ -38,6 +38,35 @@ Lines, arrows and freedraw are measured by their `points`, not
 `width`/`height`. Rotated shapes get the circle-bounding box, which is loose
 but never too small.
 
+## Groups: several boards as one (`domain/group.ts`, `lib/groups.ts`)
+
+A group plays several boards back to back, as if they were one long board.
+`stackBoards` builds that board in memory: each board's drawing is moved to
+sit below the previous one (1000 units apart), and every element id is
+prefixed per board (`0:`, `1:`…) because boards copied from one another share
+ids. Every link between elements is renamed to match (frames, groups, text
+in shapes, arrow bindings), and Excalidraw's ordering keys are dropped so it
+makes fresh ones. The result keeps each board's elements as `parts`, and
+`boardPages` finds pages board by board, so each board keeps its own
+frames-or-bands choice; its automatically found pages are named after it.
+The slideshow, camera and page grid don't know the difference.
+
+There are two kinds, both listed under "Groups" in the library:
+
+- **Folders.** Any folder *inside* a connected folder that holds two or more
+  boards, played in name order (`01 intro`, `02 …`). Connected folders
+  themselves aren't groups: they're collections, not talks. The id is the
+  folder's path (`New folder/talk`), which never ends in `.excalidraw`, so it
+  can't clash with a board id.
+- **Made by hand.** "New group" turns board clicks into picks, numbered in
+  click order. Saved in localStorage as board ids (`~<time>` ids), so per
+  address like the rest of the library. Boards that go missing are left out
+  and counted on the card.
+
+A board in a group that can't be read is skipped; the group only fails to
+open if none can. Resume and page height are remembered under the group's
+name.
+
 ## Presenting (`features/slideshow/`)
 
 Excalidraw runs with `viewModeEnabled` + `zenModeEnabled`, dark theme. The
@@ -157,6 +186,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.7** — Groups: play the boards of a folder, or boards picked by
+  hand, back to back as one slideshow.
 - **v0.0.5** — The control bar stays visible, with pages fitted above it;
   `H` hides it.
 - **v0.0.4** — Installable app: offline service worker, update banner, opens

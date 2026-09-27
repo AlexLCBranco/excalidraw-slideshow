@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { folderGroups, pickedGroups } from "../../lib/groups";
 import { type BoardEntry, hasAccess, idWithin, scanSources } from "../../lib/library";
-import { loadSources, type Source, saveSources } from "../../lib/storage";
+import { loadGroups, loadSources, type SavedGroup, type Source, saveGroups, saveSources } from "../../lib/storage";
 
 /**
  * "loading": reading what was connected before.
@@ -11,14 +12,17 @@ import { loadSources, type Source, saveSources } from "../../lib/storage";
 export type LibraryState = "loading" | "blocked" | "ready";
 
 /**
- * The connected folders and files, and every board found in them. The list
- * is refreshed whenever the window comes back into focus, so boards saved
- * from excalidraw.com in the meantime show up.
+ * The connected folders and files, every board found in them, and the groups
+ * of boards (see lib/groups.ts). The list is refreshed whenever the window
+ * comes back into focus, so boards saved from excalidraw.com in the meantime
+ * show up.
  */
 export function useLibrary() {
   const [sources, setSources] = useState<Source[]>([]);
   const [entries, setEntries] = useState<BoardEntry[]>([]);
   const [state, setState] = useState<LibraryState>("loading");
+  const [saved, setSaved] = useState(loadGroups);
+  const groups = useMemo(() => [...pickedGroups(saved, entries), ...folderGroups(entries)], [saved, entries]);
   // The latest list, as a promise: `add` can be called (say, for a file opened
   // from Explorer) before the saved list has loaded, and must not overwrite it.
   const latest = useRef<Promise<Source[]> | null>(null);
@@ -81,5 +85,24 @@ export function useLibrary() {
   /** Must run from a click: the browser only shows its permission prompt then. */
   const allowAccess = useCallback(() => refresh(sources, true), [refresh, sources]);
 
-  return { sources, entries, state, add, remove, allowAccess };
+  const changeGroups = useCallback((change: (list: SavedGroup[]) => SavedGroup[]) => {
+    setSaved((list) => {
+      const next = change(list);
+      saveGroups(next);
+      return next;
+    });
+  }, []);
+
+  /** Adds a hand-made group, or replaces the one with the same id. */
+  const saveGroup = useCallback(
+    (group: SavedGroup) =>
+      changeGroups((list) =>
+        list.some((g) => g.id === group.id) ? list.map((g) => (g.id === group.id ? group : g)) : [group, ...list],
+      ),
+    [changeGroups],
+  );
+
+  const removeGroup = useCallback((id: string) => changeGroups((list) => list.filter((g) => g.id !== id)), [changeGroups]);
+
+  return { sources, entries, groups, state, add, remove, allowAccess, saveGroup, removeGroup };
 }

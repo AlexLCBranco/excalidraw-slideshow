@@ -1,7 +1,7 @@
 /**
  * Everything the app remembers between visits, all in this browser:
  *  - per board, the page height chosen, the page last shown and when it was
- *    last opened (localStorage), and
+ *    last opened, and the groups put together by hand (localStorage), and
  *  - the connected folders and files, and cached board thumbnails
  *    (IndexedDB, because file handles and images can't go in localStorage).
  * Every call tolerates storage being unavailable and falls back to "nothing saved".
@@ -51,6 +51,31 @@ export function saveBarPinned(pinned: boolean) {
     localStorage.setItem(PREFIX + "barPinned", String(pinned));
   } catch {
     // Not remembered this time; the bar shows by default.
+  }
+}
+
+/** A group of boards put together by hand in the library, presented back to back. */
+export interface SavedGroup {
+  id: string;
+  name: string;
+  /** Library ids, in the order they're presented. */
+  boardIds: string[];
+}
+
+export function loadGroups(): SavedGroup[] {
+  try {
+    const groups: unknown = JSON.parse(localStorage.getItem(PREFIX + "groups") ?? "[]");
+    return Array.isArray(groups) ? (groups as SavedGroup[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveGroups(groups: readonly SavedGroup[]) {
+  try {
+    localStorage.setItem(PREFIX + "groups", JSON.stringify(groups));
+  } catch {
+    // Not remembered this time; the groups last only until the page closes.
   }
 }
 

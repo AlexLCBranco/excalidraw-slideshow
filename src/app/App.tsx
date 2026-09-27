@@ -35,12 +35,14 @@ export function App() {
       return;
     }
     const entry = library.entries.find((e) => e.id === id);
-    if (entry) void load(id, entry.handle);
+    const group = library.groups.find((g) => g.id === id);
+    if (entry) void load(id, entry.name, [entry.handle]);
+    else if (group) void load(id, group.name, group.entries.map((e) => e.handle));
     else if (library.state === "ready") {
       setError(`Couldn't find “${id}”. Was it moved or renamed?`);
       toLibrary();
     }
-  }, [route.boardId, loaded, loading, failedId, library.entries, library.state, load, unload, setError, toLibrary]);
+  }, [route.boardId, loaded, loading, failedId, library.entries, library.groups, library.state, load, unload, setError, toLibrary]);
 
   const showing = loaded && loaded.id === route.boardId ? loaded : null;
   useAutoUpdate(route.boardId === null);
@@ -50,8 +52,8 @@ export function App() {
   }, [showing]);
 
   const present = useCallback(
-    (id: string, source: Picked) => {
-      void load(id, source);
+    (id: string, name: string, sources: readonly Picked[]) => {
+      void load(id, name, sources);
       openBoard(id);
     },
     [load, openBoard],
@@ -60,8 +62,8 @@ export function App() {
   /** A file chosen in the picker or dropped on the window: remember it (when possible) and present it. */
   const openPicked = useCallback(
     (picked: Picked) => {
-      if (picked instanceof File) present(picked.name, picked);
-      else void library.add(picked).then((id) => present(id, picked));
+      if (picked instanceof File) present(picked.name, picked.name, [picked]);
+      else void library.add(picked).then((id) => present(id, picked.name, [picked]));
     },
     [library, present],
   );
@@ -90,10 +92,14 @@ export function App() {
             state={library.state}
             sources={library.sources}
             entries={library.entries}
+            groups={library.groups}
             notice={error}
             onDismissNotice={() => setError("")}
             dragging={dragging}
-            onOpen={(entry) => present(entry.id, entry.handle)}
+            onOpen={(entry) => present(entry.id, entry.name, [entry.handle])}
+            onOpenGroup={(group) => present(group.id, group.name, group.entries.map((e) => e.handle))}
+            onSaveGroup={library.saveGroup}
+            onRemoveGroup={library.removeGroup}
             onOpenFile={openFile}
             onConnectFolder={connectFolder}
             onRemoveSource={library.remove}

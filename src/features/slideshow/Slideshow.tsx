@@ -3,7 +3,7 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useState } from "react";
 
-import { DEFAULT_PAGE_HEIGHT, findPages, fitPage, pageAt } from "../../domain/pages";
+import { boardPages, DEFAULT_PAGE_HEIGHT, fitPage, pageAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import {
   loadBarPinned,
@@ -54,7 +54,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [ready, setReady] = useState(false);
   const [pageHeight, setPageHeight] = useState(() => loadPageHeight(board.name) ?? DEFAULT_PAGE_HEIGHT);
-  const pages = useMemo(() => findPages(board.elements, pageHeight), [board.elements, pageHeight]);
+  const pages = useMemo(() => boardPages(board, pageHeight), [board, pageHeight]);
   // Only a resume (no page in the address) is announced.
   const [resumedAt] = useState(() => (initialPage === null ? Math.min(loadLastPage(board.name), pages.length - 1) : 0));
   const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
@@ -116,8 +116,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const resizePages = (factor: number) => {
     const next = Math.round(pageHeight * factor);
-    const nextPages = findPages(board.elements, next);
-    if (nextPages.length && nextPages[0].name) {
+    const nextPages = boardPages(board, next);
+    if (nextPages.every((p) => p.frameId)) {
       showToast("This board uses its frames as pages");
       return;
     }

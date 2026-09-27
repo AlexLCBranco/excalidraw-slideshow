@@ -64,6 +64,34 @@
   font-weight: var(--weight-bold);
 }
 
+/* Picking boards for a group: a numbered circle shows each board's place. */
+.card[data-picked="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.place {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border: 2px solid var(--text);
+  border-radius: var(--radius-pill);
+  background: var(--scrim);
+  color: var(--accent-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--weight-bold);
+  box-sizing: border-box;
+}
+
+.card[data-picked="true"] .place {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
 .body {
   display: flex;
   flex-direction: column;

@@ -6,6 +6,17 @@ export interface Board {
   elements: SceneElement[];
   files: Record<string, unknown>;
   background: string;
+  /**
+   * Set when several boards are presented as one (domain/group.ts): each
+   * board's elements, already moved into place, so pages are found per board.
+   */
+  parts?: readonly BoardPart[];
+}
+
+export interface BoardPart {
+  /** The board's name without ".excalidraw", shown on its automatically found pages. */
+  name: string;
+  elements: readonly SceneElement[];
 }
 
 /** Parses the text of a .excalidraw file. Returns an error message for anything else. */

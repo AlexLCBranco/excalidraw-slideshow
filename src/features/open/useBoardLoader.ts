@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 
+import { stackBoards } from "../../domain/group";
 import { type Board, parseBoard } from "../../domain/scene";
 import { saveLastOpened } from "../../lib/storage";
 import type { Picked } from "./pickBoard";
@@ -14,7 +15,7 @@ export interface LoadedBoard {
 
 let loads = 0;
 
-/** Reads and parses one board at a time. Files are read fresh on every open, so edits show up. */
+/** Reads and parses one board (or group) at a time. Files are read fresh on every open, so edits show up. */
 export function useBoardLoader() {
   const [loaded, setLoaded] = useState<LoadedBoard | null>(null);
   const [loading, setLoading] = useState<{ id: string; name: string } | null>(null);
@@ -22,26 +23,34 @@ export function useBoardLoader() {
   /** The board that last failed to open, so the address bar doesn't retry it in a loop. */
   const [failedId, setFailedId] = useState<string | null>(null);
 
-  const load = useCallback(async (id: string, source: Picked) => {
-    setLoading({ id, name: source.name });
+  /**
+   * Opens one board, or several as one group (`name` is then the group's).
+   * In a group, boards that can't be read are left out; it fails only if none can.
+   */
+  const load = useCallback(async (id: string, name: string, sources: readonly Picked[]) => {
+    setLoading({ id, name });
     setError("");
     setFailedId(null);
-    try {
-      const file = source instanceof File ? source : await source.getFile();
-      const result = parseBoard(file.name, await file.text());
-      if (typeof result === "string") {
-        setError(result);
-        setFailedId(id);
-      } else {
-        setLoaded({ id, board: result, key: ++loads });
-        saveLastOpened(file.name);
+    const boards: Board[] = [];
+    let problem = "";
+    for (const source of sources) {
+      try {
+        const file = source instanceof File ? source : await source.getFile();
+        const result = parseBoard(file.name, await file.text());
+        if (typeof result === "string") problem ||= result;
+        else boards.push(result);
+      } catch {
+        problem ||= `Couldn't read ${source.name}. It may have been moved or deleted.`;
       }
-    } catch {
-      setError(`Couldn't read ${source.name}. It may have been moved or deleted.`);
-      setFailedId(id);
-    } finally {
-      setLoading(null);
     }
+    if (boards.length) {
+      setLoaded({ id, board: sources.length > 1 ? stackBoards(name, boards) : boards[0], key: ++loads });
+      saveLastOpened(name);
+    } else {
+      setError(problem || `“${name}” has no boards.`);
+      setFailedId(id);
+    }
+    setLoading(null);
   }, []);
 
   /** Lets go of the open board, freeing its memory (boards run to tens of MB). */

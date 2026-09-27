@@ -1,3 +1,4 @@
+import type { Board } from "./scene";
 import type { Page, SceneElement } from "./types";
 
 export const DEFAULT_PAGE_HEIGHT = 1000;
@@ -43,8 +44,20 @@ export function findPages(elements: readonly SceneElement[], pageHeight: number)
   return bandPages(content, pageHeight);
 }
 
+/**
+ * The pages of a board. A group of boards (see `stackBoards`) is split board
+ * by board, so each keeps its own frames-or-bands choice, and its
+ * automatically found pages are named after the board they come from.
+ */
+export function boardPages(board: Pick<Board, "elements" | "parts">, pageHeight: number): Page[] {
+  if (!board.parts) return findPages(board.elements, pageHeight);
+  return board.parts.flatMap((part) =>
+    findPages(part.elements, pageHeight).map((p) => (p.frameId ? p : { ...p, name: part.name })),
+  );
+}
+
 function bandPages(content: readonly SceneElement[], pageHeight: number): Page[] {
-  const boxes = content.map(bounds).filter((b) => b !== null);
+  const boxes = content.map(elementBounds).filter((b) => b !== null);
   if (!boxes.length) return [];
 
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -93,7 +106,7 @@ function bandPages(content: readonly SceneElement[], pageHeight: number): Page[]
 }
 
 /** Axis-aligned bounds of an element; rotated shapes get a box that contains them. */
-function bounds(e: SceneElement) {
+export function elementBounds(e: SceneElement) {
   let xs: number[], ys: number[];
   if (e.points?.length) {
     xs = e.points.map((p) => e.x + p[0]);

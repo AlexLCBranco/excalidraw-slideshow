@@ -14,6 +14,14 @@ export interface SceneElement {
   isDeleted?: boolean;
   frameId?: string | null;
   name?: string | null;
+  // Links to other elements, renamed when boards are stacked (domain/group.ts).
+  containerId?: string | null;
+  groupIds?: readonly string[];
+  boundElements?: readonly { id: string; type: string }[] | null;
+  startBinding?: { elementId: string } | null;
+  endBinding?: { elementId: string } | null;
+  /** Excalidraw's stacking-order key. */
+  index?: string | null;
 }
 
 /** One slide: a rectangle of the canvas, in scene coordinates. */
