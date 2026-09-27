@@ -27,8 +27,8 @@ click-by-click steps. Explain design decisions briefly as you go.
   is a regression, whatever else it gains.
 - **Works offline.** No runtime CDN loads. Excalidraw and its fonts ship from
   `node_modules` / `public/fonts`, and the service worker precaches the build.
-- **Never reload mid-presentation.** New versions wait for "Update now" on
-  the library.
+- **Never reload mid-presentation.** New versions apply themselves, but only
+  while the library is showing (`app/useAutoUpdate.ts`).
 
 ## Priorities, in order
 

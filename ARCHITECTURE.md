@@ -125,9 +125,11 @@ install (gitignored), and `index.html` sets `window.EXCALIDRAW_ASSET_PATH =
 `vite-plugin-pwa` adds a service worker that precaches the whole build
 (~8 MB), so after one visit the site works with no network. Xiaolai, the
 CJK font (13 MB in ~200 pieces), is left out of the precache and cached on
-first use instead. A new version downloads in the background and waits: the
-library shows "A new version is ready", and nothing reloads on its own, so a
-presentation is never interrupted. The worker only runs in production builds
+first use instead. On each visit the saved copy opens instantly while a new
+version, if any, downloads in the background. `useAutoUpdate` then switches
+to it (one quick reload) as soon as the library is showing. If a board is
+open, it waits until you go back to the library, so a presentation is never
+interrupted. The worker only runs in production builds
 (`npm run build`), not under `npm run dev`. The Claude desktop app's browser
 pane can't register service workers; test offline in Edge or Chrome.
 

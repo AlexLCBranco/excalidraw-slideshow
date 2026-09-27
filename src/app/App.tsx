@@ -9,7 +9,7 @@ import { useLaunchFiles } from "../features/open/useLaunchFiles";
 import { useWindowFileDrop } from "../features/open/useWindowFileDrop";
 import { Slideshow } from "../features/slideshow/Slideshow";
 import styles from "./App.module.css";
-import { UpdateBanner } from "./UpdateBanner";
+import { useAutoUpdate } from "./useAutoUpdate";
 import { showPageInAddress, useRoute } from "./useRoute";
 import { VersionBadge } from "./VersionBadge";
 
@@ -43,6 +43,7 @@ export function App() {
   }, [route.boardId, loaded, loading, failedId, library.entries, library.state, load, unload, setError, toLibrary]);
 
   const showing = loaded && loaded.id === route.boardId ? loaded : null;
+  useAutoUpdate(route.boardId === null);
 
   useEffect(() => {
     document.title = showing ? `${displayName(showing.board.name)} · ${TITLE}` : TITLE;
@@ -107,7 +108,6 @@ export function App() {
           <VersionBadge />
         </>
       )}
-      <UpdateBanner hidden={showing !== null} />
     </>
   );
 }
