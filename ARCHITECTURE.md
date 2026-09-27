@@ -114,7 +114,8 @@ laser, then the board).
   `SelectionLayer` is the same kind of overlay: a drag draws a box, a click
   picks the topmost element. Which elements that means is worked out in
   `domain/selection.ts` from element bounds, widened to whole groups and the
-  text inside shapes, as excalidraw.com does. A selection belongs to its page.
+  text inside shapes, as excalidraw.com does. While the box is being dragged,
+  what it would pick is outlined live, using the same rule. A selection belongs to its page.
   Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
   into excalidraw.com as shapes. None of them change the board.

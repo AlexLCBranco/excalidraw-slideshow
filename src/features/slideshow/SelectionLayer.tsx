@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { type Camera, elementBounds } from "../../domain/pages";
 import { type Box, boxBetween, elementAt, elementsInBox, toScene, toScreen } from "../../domain/selection";
@@ -7,6 +7,7 @@ import styles from "./SelectionLayer.module.css";
 
 /** A drag shorter than this, in px, is a click: it picks the element under the mouse. */
 const CLICK_PX = 4;
+const isClick = (b: Box) => b.x1 - b.x0 < CLICK_PX && b.y1 - b.y0 < CLICK_PX;
 
 export interface SelectionAction {
   label: string;
@@ -64,7 +65,7 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions, 
     if (!drag) return;
     const { box } = drag;
     setDrag(null);
-    if (box.x1 - box.x0 < CLICK_PX && box.y1 - box.y0 < CLICK_PX) {
+    if (isClick(box)) {
       const p = toScene(camera, box);
       onSelect(elementAt(elements, p.x0, p.y0));
     } else {
@@ -72,7 +73,13 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions, 
     }
   };
 
-  const outlines = selected.flatMap((e) => {
+  // While a box is dragged, what it would pick is outlined live, as on excalidraw.com.
+  const picking = useMemo(
+    () => (drag ? (isClick(drag.box) ? [] : elementsInBox(elements, toScene(camera, drag.box))) : null),
+    [drag, elements, camera],
+  );
+
+  const outlines = (picking ?? selected).flatMap((e) => {
     const b = elementBounds(e);
     return b ? [toScreen(camera, b)] : [];
   });
