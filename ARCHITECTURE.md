@@ -124,8 +124,9 @@ laser, then the board).
   Excalidraw with `updateScene(..., CaptureUpdateAction.NEVER)`, starting
   from Excalidraw's own scene elements so nothing it restored on load is
   lost. `board.elements` keeps the originals, so Copy and the page grid
-  never see the change, and closing the board forgets it. This is the one
-  place the app changes what Excalidraw draws rather than where it looks.
+  never see the change, and closing the board forgets it. Reset puts the
+  selection back to its own opacity. Every change made while viewing follows
+  this pattern: state in `Slideshow`, applied on screen only, gone on close.
 - **Resume.** The last page shown is saved per board and restored on open.
 
 ## Addresses (`app/useRoute.ts`)

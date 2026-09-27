@@ -25,6 +25,10 @@ click-by-click steps. Explain design decisions briefly as you go.
   commit a board (`*.excalidraw` is gitignored).
 - **Arrow-key paging is the product.** Anything that makes ←/→ less reliable
   is a regression, whatever else it gains.
+- **Changes made while viewing are temporary.** Anything the owner changes
+  on a board in the app (opacity today, more later) is for that viewing only:
+  kept in memory while the board is open, never written to the file and never
+  saved in the browser. Closing the board forgets it all.
 - **Works offline.** No runtime CDN loads. Excalidraw and its fonts ship from
   `node_modules` / `public/fonts`, and the service worker precaches the build.
 - **Never reload mid-presentation.** New versions apply themselves, but only
@@ -57,7 +61,8 @@ click-by-click steps. Explain design decisions briefly as you go.
   and z-index comes from `src/styles/tokens.css`. Styling is CSS Modules.
 - **Excalidraw is read-only here.** It runs with `viewModeEnabled`; the app
   moves its camera through `updateScene`, and may change how elements are
-  drawn for the moment (e.g. opacity), never saved. Don't add editing.
+  drawn for the current viewing (see the temporary-changes rule above).
+  Don't add editing.
 - Excalidraw's internal class names (hidden in `styles/global.css`) are not a
   public API. After upgrading `@excalidraw/excalidraw`, check the menu, zoom
   buttons and help icon are still hidden.

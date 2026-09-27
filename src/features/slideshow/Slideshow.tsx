@@ -181,6 +181,11 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           () => showToast("The browser didn't allow copying"),
         ),
     },
+    {
+      label: "Reset",
+      // Selected elements come from the board, so they carry its own opacities.
+      run: (els) => setOpacities((o) => ({ ...o, ...Object.fromEntries(els.map((e) => [e.id, e.opacity ?? 100])) })),
+    },
   ];
 
   const go = (i: number) => setIndex(Math.max(0, Math.min(pages.length - 1, i)));
