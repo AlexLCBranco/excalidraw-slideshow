@@ -14,6 +14,11 @@ interface Props {
   index: number;
   count: number;
   pageName: string;
+  /** Reveal progress on this page, e.g. "step 1/3", or "" for a page without steps. */
+  step: string;
+  /** Whether ← and → do anything: another page, or a step to hide or show. */
+  canPrevious: boolean;
+  canNext: boolean;
   fullscreen: boolean;
   tool: Tool;
   gridOpen: boolean;
@@ -45,12 +50,13 @@ export function ControlBar(p: Props) {
     >
       <Button icon="back" label="Back (Esc)" onClick={p.onBack} />
       <span className={styles.divider} />
-      <Button icon="previous" label="Previous page (←)" onClick={p.onPrevious} disabled={p.index === 0} />
+      <Button icon="previous" label="Previous page (←)" onClick={p.onPrevious} disabled={!p.canPrevious} />
       <button className={styles.counter} onClick={p.onGrid} title="All pages (G)">
         {p.pageName && <span className={styles.pageName}>{p.pageName}</span>}
         {p.index + 1} / {p.count}
+        {p.step && <span className={styles.step}>{p.step}</span>}
       </button>
-      <Button icon="next" label="Next page (→)" onClick={p.onNext} disabled={p.index === p.count - 1} />
+      <Button icon="next" label="Next page (→)" onClick={p.onNext} disabled={!p.canNext} />
       <span className={styles.divider} />
       <Button icon="zoomOut" label="Zoom out" onClick={p.onZoomOut} disabled={p.zoom <= 1} />
       <button className={styles.counter} onClick={p.onZoomReset} title="Whole page">

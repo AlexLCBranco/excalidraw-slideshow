@@ -3,8 +3,9 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useState } from "react";
 
-import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
+import { type Opacities, opacityOf, screenOpacities, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt } from "../../domain/pages";
+import { addStep, hiddenIds, inSteps, removeFromSteps, type Steps } from "../../domain/reveal";
 import type { Board } from "../../domain/scene";
 import { clipboardText, selectionText } from "../../domain/selection";
 import type { SceneElement } from "../../domain/types";
@@ -50,6 +51,9 @@ const TYPED_PAGE_MS = 3000;
 /** Each zoom button press zooms by this much, up to MAX_ZOOM times the fitted page. */
 const ZOOM_STEP = 1.5;
 const MAX_ZOOM = 8;
+
+/** A page without reveal steps. One shared value, so memos depending on it stay put. */
+const NO_STEPS: Steps = [];
 
 type Overlay = "none" | "grid" | "help";
 /** What the mouse does on the page: the remembered mode, or the laser for a while. */
@@ -110,16 +114,36 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [selection, setSelection] = useState<{ page: number; elements: SceneElement[] } | null>(null);
   const selected = selection?.page === current ? selection.elements : [];
 
-  // Opacity changes are only a view: Excalidraw redraws with them, but they last until the
-  // board is closed and never reach the file. Copy and the page grid still see the originals.
+  // Reveal steps per page, and how many of the current page's are showing. Arriving with →
+  // or a jump shows none; arriving with ← shows them all (see `previous`).
+  const [steps, setSteps] = useState<Record<number, Steps>>({});
+  const [shown, setShown] = useState({ page: current, count: 0 });
+  const pageSteps = steps[current] ?? NO_STEPS;
+  const revealed = shown.page === current ? Math.min(shown.count, pageSteps.length) : 0;
+  const stepLabel = pageSteps.length ? `step ${revealed}/${pageSteps.length}` : "";
+  const hidden = useMemo(() => hiddenIds(pageSteps, revealed), [pageSteps, revealed]);
+  const hideable = useMemo(() => new Set(Object.values(steps).flat(2)), [steps]);
+  // Hidden elements can't be picked by the select tool.
+  const pickable = useMemo(
+    () => (hidden.size ? board.elements.filter((e) => !hidden.has(e.id)) : board.elements),
+    [board, hidden],
+  );
+
+  // Opacity changes and hidden steps are only a view: Excalidraw redraws with them, but they
+  // last until the board is closed and never reach the file. Copy and the page grid still see
+  // the originals.
   const [opacities, setOpacities] = useState<Opacities>({});
+  const onScreen = useMemo(
+    () => screenOpacities(board.elements, opacities, hideable, hidden),
+    [board, opacities, hideable, hidden],
+  );
   useEffect(() => {
-    if (!api || !ready || !Object.keys(opacities).length) return;
+    if (!api || !ready || !Object.keys(onScreen).length) return;
     api.updateScene({
-      elements: withOpacities(api.getSceneElementsIncludingDeleted(), opacities),
+      elements: withOpacities(api.getSceneElementsIncludingDeleted(), onScreen),
       captureUpdate: CaptureUpdateAction.NEVER,
     });
-  }, [api, ready, opacities]);
+  }, [api, ready, onScreen]);
 
   // In view mode Excalidraw pans on every drag, so the page is re-fitted whenever the mouse is released.
   const [releases, setReleases] = useState(0);
@@ -206,13 +230,45 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       },
     },
     {
+      label: "Add step",
+      // Stays visible while steps are being set up; hidden the next time the page is arrived at.
+      run: (els) => {
+        const next = addStep(pageSteps, els.map((e) => e.id));
+        setSteps((s) => ({ ...s, [current]: next }));
+        setShown({ page: current, count: next.length });
+        showToast(`Step ${next.length} of this page · → will show it`);
+      },
+    },
+    {
+      label: "Remove step",
+      available: (els) => inSteps(pageSteps, els.map((e) => e.id)),
+      run: (els) => {
+        const next = removeFromSteps(pageSteps, els.map((e) => e.id));
+        setSteps((s) => ({ ...s, [current]: next }));
+        setShown({ page: current, count: next.length });
+        showToast(next.length ? `${next.length} steps left on this page` : "No steps left on this page");
+      },
+    },
+    {
       label: "Reset",
       // Selected elements come from the board, so they carry its own opacities.
       run: (els) => setOpacities((o) => ({ ...o, ...Object.fromEntries(els.map((e) => [e.id, e.opacity ?? 100])) })),
     },
   ];
 
-  const go = (i: number) => setIndex(Math.max(0, Math.min(pages.length - 1, i)));
+  // Arrives on page i with `revealed` of its steps showing: none, unless coming back with ←.
+  const go = (i: number, revealed = 0) => {
+    const to = Math.max(0, Math.min(pages.length - 1, i));
+    setIndex(to);
+    setShown({ page: to, count: revealed });
+  };
+  // → shows the page’s next hidden step before moving on; ← hides the last one shown before
+  // going back, and arrives on the previous page with all its steps showing.
+  const next = () => (revealed < pageSteps.length ? setShown({ page: current, count: revealed + 1 }) : go(current + 1));
+  const previous = () => {
+    if (revealed > 0) return setShown({ page: current, count: revealed - 1 });
+    if (current > 0) go(current - 1, steps[current - 1]?.length ?? 0);
+  };
   const toggleOverlay = (o: Overlay) => setOverlay((cur) => (cur === o ? "none" : o));
 
   const resizePages = (factor: number) => {
@@ -239,8 +295,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   };
 
   useSlideKeys(ready, {
-    next: () => go(current + 1),
-    previous: () => go(current - 1),
+    next,
+    previous,
     first: () => go(0),
     last: () => go(pages.length - 1),
     smaller: () => resizePages(1 / RESIZE_STEP),
@@ -307,7 +363,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       {tool === "laser" && <LaserPointer />}
       {tool === "select" && ready && (
         <SelectionLayer
-          elements={board.elements}
+          elements={pickable}
           camera={camera ?? view}
           selected={selected}
           onSelect={(elements) => setSelection({ page: current, elements })}
@@ -326,19 +382,23 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           <div className={styles.progress} style={{ width: `${((current + 1) / pages.length) * 100}%` }} />
           <div className={styles.hud} data-visible={!barVisible}>
             {current + 1} / {pages.length}
+            {stepLabel && ` · ${stepLabel}`}
           </div>
           <ControlBar
             visible={barVisible}
             index={current}
             count={pages.length}
+            step={stepLabel}
+            canPrevious={current > 0 || revealed > 0}
+            canNext={current < pages.length - 1 || revealed < pageSteps.length}
             pageName={page.name}
             fullscreen={fullscreen}
             tool={tool}
             gridOpen={overlay === "grid"}
             zoom={camera ? camera.zoom / view.zoom : 1}
             onBack={onClose}
-            onPrevious={() => go(current - 1)}
-            onNext={() => go(current + 1)}
+            onPrevious={previous}
+            onNext={next}
             onGrid={() => toggleOverlay("grid")}
             onZoomIn={() => zoomBy(ZOOM_STEP)}
             onZoomOut={() => zoomBy(1 / ZOOM_STEP)}

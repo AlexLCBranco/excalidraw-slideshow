@@ -36,7 +36,8 @@ click-by-click steps. Explain design decisions briefly as you go.
 
 ## Priorities, in order
 
-1. ←/→ always land on the right page, fitted to the screen
+1. ←/→ always land on the right page, fitted to the screen (on a page with
+   reveal steps, → shows the next step first and ← hides the last one)
 2. Page detection that needs no setup on any board
 3. Opening a board is one click
 4. Very clean code

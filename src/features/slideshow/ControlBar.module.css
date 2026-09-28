@@ -72,6 +72,10 @@
   text-overflow: ellipsis;
 }
 
+.step {
+  color: var(--accent);
+}
+
 .divider {
   width: 1px;
   height: var(--space-5);

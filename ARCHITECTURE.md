@@ -140,6 +140,15 @@ laser, then the board).
   never see the change, and closing the board forgets it. Reset puts the
   selection back to its own opacity. Every change made while viewing follows
   this pattern: state in `Slideshow`, applied on screen only, gone on close.
+- **Reveal steps.** Select elements and "Add step": on that page they start
+  hidden and appear one per →; once all are showing, → moves on. ← hides the
+  last step shown, and arrives on the previous page fully built. Direct jumps
+  (grid, Home/End, typed number) arrive with nothing revealed. Steps are lists
+  of element ids per page (`domain/reveal.ts`), kept in `Slideshow` state like
+  opacity, so closing the board forgets them. Hiding is opacity 0 through the
+  same `screenOpacities` pass, which also restores an element once revealed.
+  Hidden elements are left out of what the select tool can pick. The bar
+  shows "step 1/3". Pages without steps page exactly as before.
 - **Resume.** The last page shown is saved per board and restored on open.
 
 ## Addresses (`app/useRoute.ts`)
