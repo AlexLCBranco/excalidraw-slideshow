@@ -1,6 +1,6 @@
 /**
  * Everything the app remembers between visits, all in this browser:
- *  - per board, the page height chosen, the page last shown and when it was
+ *  - per board, the page height chosen, page cuts saved by hand, the page last shown and when it was
  *    last opened, and the groups put together by hand (localStorage), and
  *  - the connected folders and files, and cached board thumbnails
  *    (IndexedDB, because file handles and images can't go in localStorage).
@@ -28,6 +28,26 @@ function saveNumber(key: string, value: number) {
 
 export const loadPageHeight = (board: string) => loadNumber("pageHeight:" + board);
 export const savePageHeight = (board: string, height: number) => saveNumber("pageHeight:" + board, height);
+
+/** Page cuts moved by hand and saved (scene heights), or null for the automatic ones. */
+export function loadCuts(board: string): number[] | null {
+  try {
+    const cuts: unknown = JSON.parse(localStorage.getItem(PREFIX + "cuts:" + board) ?? "null");
+    return Array.isArray(cuts) && cuts.every(Number.isFinite) ? (cuts as number[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Saves cuts made by hand; null goes back to the automatic ones. */
+export function saveCuts(board: string, cuts: readonly number[] | null) {
+  try {
+    if (cuts) localStorage.setItem(PREFIX + "cuts:" + board, JSON.stringify(cuts));
+    else localStorage.removeItem(PREFIX + "cuts:" + board);
+  } catch {
+    // Not remembered this time; the cuts last until the board is closed.
+  }
+}
 
 /** The page last shown (0-based), so reopening a board resumes there. */
 export const loadLastPage = (board: string) => loadNumber("lastPage:" + board) ?? 0;

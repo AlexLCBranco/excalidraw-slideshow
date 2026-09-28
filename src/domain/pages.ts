@@ -138,6 +138,21 @@ export function fitPage(page: Page, width: number, height: number) {
   };
 }
 
+/** The camera that fits all of `pages` into the viewport, with at least `margin` px around them. */
+export function fitAll(pages: readonly Page[], width: number, height: number, margin: number): Camera {
+  const all = {
+    x0: Math.min(...pages.map((p) => p.x0)),
+    y0: Math.min(...pages.map((p) => p.y0)),
+    x1: Math.max(...pages.map((p) => p.x1)),
+    y1: Math.max(...pages.map((p) => p.y1)),
+    name: "",
+  };
+  // A window too small for the margin just loses it.
+  const m = Math.max(0, Math.min(margin, (width - 1) / 2, (height - 1) / 2));
+  const { zoom, scrollX, scrollY } = fitPage(all, width - 2 * m, height - 2 * m);
+  return { zoom, scrollX: scrollX + m / zoom, scrollY: scrollY + m / zoom };
+}
+
 export interface Camera {
   zoom: number;
   scrollX: number;

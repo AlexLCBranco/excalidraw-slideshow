@@ -8,6 +8,8 @@ interface Actions {
   smaller: () => void;
   bigger: () => void;
   grid: () => void;
+  /** The whole board, with its page cuts. */
+  whole: () => void;
   fullscreen: () => void;
   /** Hide or show the control bar. */
   bar: () => void;
@@ -20,6 +22,8 @@ interface Actions {
   /** A digit typed towards "go to page N". */
   digit: (d: string) => void;
   enter: () => void;
+  /** The mouse wheel, which never reaches Excalidraw. */
+  wheel: (e: WheelEvent) => void;
 }
 
 const KEYS: Record<string, keyof Actions> = {
@@ -28,6 +32,7 @@ const KEYS: Record<string, keyof Actions> = {
   Home: "first", End: "last",
   "-": "smaller", "=": "bigger", "+": "bigger",
   g: "grid", G: "grid",
+  w: "whole", W: "whole",
   f: "fullscreen", F: "fullscreen",
   h: "bar", H: "bar",
   k: "laser", K: "laser",
@@ -41,7 +46,8 @@ const KEYS: Record<string, keyof Actions> = {
 /**
  * Keyboard and mouse-wheel control for the slideshow. Listens in the capture
  * phase so Excalidraw never sees these keys (it would otherwise pan with the
- * arrows), and swallows the wheel so the camera can't drift off the page.
+ * arrows), and swallows the wheel so the camera can't drift off the page (the
+ * whole-board view moves with it instead).
  */
 export function useSlideKeys(enabled: boolean, actions: Actions) {
   // Read the latest actions from a ref, so the listener is attached once.
@@ -60,11 +66,12 @@ export function useSlideKeys(enabled: boolean, actions: Actions) {
       e.preventDefault();
       e.stopPropagation();
       if (action === "digit") latest.current.digit(e.key);
-      else latest.current[action]();
+      else if (action !== "wheel") latest.current[action]();
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      latest.current.wheel(e);
     };
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("wheel", onWheel, { capture: true, passive: false });

@@ -28,7 +28,9 @@ click-by-click steps. Explain design decisions briefly as you go.
 - **Changes made while viewing are temporary.** Anything the owner changes
   on a board in the app (opacity today, more later) is for that viewing only:
   kept in memory while the board is open, never written to the file and never
-  saved in the browser. Closing the board forgets it all.
+  saved in the browser. Closing the board forgets it all. The one exception
+  the owner asked for: page cuts moved by hand (W) are kept in the browser
+  when the owner presses Save, and only then.
 - **Works offline.** No runtime CDN loads. Excalidraw and its fonts ship from
   `node_modules` / `public/fonts`, and the service worker precaches the build.
 - **Never reload mid-presentation.** New versions apply themselves, but only

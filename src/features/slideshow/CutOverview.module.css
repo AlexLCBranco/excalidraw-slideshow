@@ -1,0 +1,132 @@
+/* Above the canvas, which still draws the board underneath. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  overflow: hidden;
+  animation: fade-in var(--duration-slow) var(--ease-out);
+}
+
+/* Each page's outline, numbered in its top-left corner. */
+.page {
+  position: absolute;
+  border: var(--cut-width) solid var(--border);
+  pointer-events: none;
+}
+
+.page[data-current="true"] {
+  border-color: var(--accent);
+}
+
+.number {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  min-width: var(--icon-button);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.page[data-current="true"] .number,
+.number:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* A cut: a thin line with a taller strip around it that's easy to grab. */
+.cut {
+  position: absolute;
+  height: var(--cut-hit);
+  translate: 0 -50%;
+  cursor: ns-resize;
+}
+
+.cut::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  height: var(--cut-width);
+  translate: 0 -50%;
+  background: var(--warning);
+  transition: height var(--duration-fast) var(--ease-out);
+}
+
+.cut:hover::after,
+.cut[data-dragging="true"]::after {
+  height: calc(var(--cut-width) * 2);
+}
+
+.toolbar {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-md));
+  white-space: nowrap;
+}
+
+.status {
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.button {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.button:hover:not(:disabled),
+.button[data-primary] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.hint {
+  position: fixed;
+  bottom: var(--space-4);
+  left: 50%;
+  translate: -50% 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

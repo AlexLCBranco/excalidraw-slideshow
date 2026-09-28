@@ -34,6 +34,30 @@ styles/     design tokens + global reset
 (one screen-sized section per 1000 units, drifting to ~985 further down).
 `-` / `=` change it per board, and the choice is saved in localStorage.
 
+## Cutting pages by hand (`domain/cuts.ts`, `CutOverview`)
+
+`W` opens the whole-board view: the Excalidraw camera zooms out (it accepts
+zooms far below its own 0.1 minimum through `updateScene`) and
+`CutOverview` draws each page's outline and an orange line at every cut
+over it. It opens on the current page and its neighbours, because a
+30-page board fitted whole is a strip 40 px wide; scroll moves, Ctrl+scroll
+zooms, "Show all" fits every page. Drag a line to move a cut, double-click
+to add one or remove one; the dragged line is followed locally and handed
+over on release, so pages (and the page grid's thumbnails) change once.
+
+Only boards without frames can be cut (`canCut`). A column of pages is fully
+described by its cuts, a sorted list of scene heights; `pagesFromCuts` takes
+the rest from the automatic pages: each page is trimmed to the automatic
+pages it overlaps (so a group's gaps between boards stay out), as wide as
+they are, and named after the one it overlaps most. Changing cuts keeps the
+same part of the board on screen (`pageAt`).
+
+Cuts follow the temporary-changes rule with one exception the owner asked
+for: they live in `Slideshow` state and are forgotten on close, unless the
+owner presses Save, which stores them in localStorage (`cuts:<board>`).
+"Automatic" goes back to the found cuts; saving that forgets the stored ones.
+While cuts are set by hand, `-` / `=` do nothing and say so.
+
 Lines, arrows and freedraw are measured by their `points`, not
 `width`/`height`. Rotated shapes get the circle-bounding box, which is loose
 but never too small.
@@ -220,6 +244,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.17** — Whole-board view (W): see the page cuts and move them by
+  hand, with the choice to save them or not.
 - **v0.0.8** — Zoom buttons, a Hand / Select / Laser switcher, and selecting: drag a box over elements and
   copy them.
 - **v0.0.7** — Groups: play the boards of a folder, or boards picked by

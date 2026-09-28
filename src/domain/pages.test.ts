@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findPages, fitPage, pageAt, zoomAt } from "./pages";
+import { findPages, fitAll, fitPage, pageAt, zoomAt } from "./pages";
 import type { SceneElement } from "./types";
 
 let n = 0;
@@ -65,6 +65,17 @@ describe("fitPage", () => {
     expect(view.scrollX).toBe(0);
     expect(view.scrollY).toBe(500);
     expect(view.marginY).toBe(250);
+  });
+});
+
+describe("fitAll", () => {
+  it("fits every page at once, inside the margin", () => {
+    const pages = [0, 1, 2, 3].map((i) => ({ x0: 0, x1: 500, y0: i * 1000, y1: (i + 1) * 1000, name: "" }));
+    const camera = fitAll(pages, 1000, 1000, 100);
+    expect(camera.zoom).toBe(0.2);
+    // The top of the first page sits at the margin, the bottom of the last at the other margin.
+    expect((0 + camera.scrollY) * camera.zoom).toBe(100);
+    expect((4000 + camera.scrollY) * camera.zoom).toBe(900);
   });
 });
 

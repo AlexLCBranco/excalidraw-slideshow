@@ -5,6 +5,7 @@ const SHORTCUTS: [keys: string[], action: string][] = [
   [["Home", "End"], "first / last page"],
   [["12", "Enter"], "go to page 12"],
   [["G"], "all pages"],
+  [["W"], "whole board: see and move the page cuts"],
   [["F"], "full screen"],
   [["H"], "hide / show the control bar"],
   [["K"], "laser pointer"],

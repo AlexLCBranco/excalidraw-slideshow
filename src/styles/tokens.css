@@ -50,6 +50,9 @@
   --selection-width: 1.5px;
   --selection-fill: rgb(168 165 255 / 0.12);
   --slider-width: 120px;
+  /* Page cuts in the whole-board view: the line, and the strip around it that can be grabbed. */
+  --cut-width: 2px;
+  --cut-hit: 14px;
 
   /* ---- Radii ---- */
   --radius-sm: 4px;

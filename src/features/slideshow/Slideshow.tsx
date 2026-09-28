@@ -3,24 +3,28 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useState } from "react";
 
+import { canCut, pagesFromCuts } from "../../domain/cuts";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
-import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt } from "../../domain/pages";
+import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { clipboardText, selectionText } from "../../domain/selection";
 import type { SceneElement } from "../../domain/types";
 import { renderPicture } from "../../lib/render";
 import {
   loadBarPinned,
+  loadCuts,
   loadLastPage,
   loadMouseMode,
   loadPageHeight,
   type MouseMode,
   saveBarPinned,
+  saveCuts,
   saveLastPage,
   saveMouseMode,
   savePageHeight,
 } from "../../lib/storage";
 import { ControlBar } from "./ControlBar";
+import { CutOverview, type CutState } from "./CutOverview";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { PageGrid } from "./PageGrid";
@@ -50,8 +54,10 @@ const TYPED_PAGE_MS = 3000;
 /** Each zoom button press zooms by this much, up to MAX_ZOOM times the fitted page. */
 const ZOOM_STEP = 1.5;
 const MAX_ZOOM = 8;
+/** In the whole-board view, Ctrl+scrolling this many px zooms by about 2.7 times. */
+const WHEEL_ZOOM_PX = 300;
 
-type Overlay = "none" | "grid" | "help";
+type Overlay = "none" | "grid" | "help" | "whole";
 /** What the mouse does on the page: the remembered mode, or the laser for a while. */
 export type Tool = MouseMode | "laser";
 
@@ -73,7 +79,18 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [ready, setReady] = useState(false);
   const [pageHeight, setPageHeight] = useState(() => loadPageHeight(board.name) ?? DEFAULT_PAGE_HEIGHT);
-  const pages = useMemo(() => boardPages(board, pageHeight), [board, pageHeight]);
+  const autoPages = useMemo(() => boardPages(board, pageHeight), [board, pageHeight]);
+  // Cuts moved by hand in the whole-board view (W). Like every change made while viewing,
+  // they last until the board is closed, unless saved: then they're remembered in this browser.
+  const [cuts, setCuts] = useState<readonly number[] | null>(() => loadCuts(board.name));
+  const [savedCuts, setSavedCuts] = useState(cuts);
+  const cuttable = canCut(autoPages);
+  const pages = useMemo(
+    () => (cuts && cuttable ? pagesFromCuts(autoPages, cuts) : autoPages),
+    [autoPages, cuts, cuttable],
+  );
+  const cutsSaved = JSON.stringify(cuts) === JSON.stringify(savedCuts);
+  const cutState: CutState = cuts ? (cutsSaved ? "saved" : "unsaved") : cutsSaved ? "automatic" : "automatic-unsaved";
   // Only a resume (no page in the address) is announced.
   const [resumedAt] = useState(() => (initialPage === null ? Math.min(loadLastPage(board.name), pages.length - 1) : 0));
   const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
@@ -129,15 +146,19 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     return () => window.removeEventListener("pointerup", onRelease);
   }, []);
 
-  useEffect(() => {
-    if (!api || !ready || camera) return;
-    api.updateScene({ appState: toAppState(view) });
-  }, [api, ready, view, releases, camera]);
+  // The whole-board view (W) opens on the current page and its neighbours (a whole board
+  // of 30 pages would be a thin strip), then moves with the wheel, out to every page at once.
+  const wholeFit = useMemo(() => fitAll(pages, width, height, tokenPx("--space-8")), [pages, width, height]);
+  const [wholeMoved, setWholeMoved] = useState<Camera | null>(null);
+  const whole = wholeMoved ?? wholeFit;
 
+  // Only a zoomed page keeps where a drag left it; otherwise the camera snaps back on release.
+  const target = overlay === "whole" ? whole : (camera ?? view);
+  const refit = camera ? 0 : releases;
   useEffect(() => {
-    if (!api || !ready || !camera) return;
-    api.updateScene({ appState: toAppState(camera) });
-  }, [api, ready, camera]);
+    if (!api || !ready) return;
+    api.updateScene({ appState: toAppState(target) });
+  }, [api, ready, target, refit]);
 
   useEffect(() => {
     saveLastPage(board.name, current);
@@ -215,7 +236,42 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const go = (i: number) => setIndex(Math.max(0, Math.min(pages.length - 1, i)));
   const toggleOverlay = (o: Overlay) => setOverlay((cur) => (cur === o ? "none" : o));
 
+  const toggleWhole = () => {
+    const around = pages.slice(Math.max(0, current - 1), current + 2);
+    setWholeMoved(fitAll(around, width, height, tokenPx("--space-8")));
+    toggleOverlay("whole");
+  };
+
+  // New cuts keep the same part of the board on screen.
+  const changeCuts = (next: readonly number[] | null) => {
+    const nextPages = next ? pagesFromCuts(autoPages, next) : autoPages;
+    setIndex(pageAt(nextPages, (page.y0 + page.y1) / 2));
+    setCuts(next);
+  };
+
+  const saveCutsNow = () => {
+    saveCuts(board.name, cuts);
+    setSavedCuts(cuts);
+  };
+
+  // Scrolling moves around the whole-board view, Ctrl+scrolling zooms it around the mouse.
+  const wheel = (e: WheelEvent) => {
+    if (overlay !== "whole") return;
+    setWholeMoved((moved) => {
+      const from = moved ?? wholeFit;
+      if (!e.ctrlKey) {
+        return { ...from, scrollX: from.scrollX - e.deltaX / from.zoom, scrollY: from.scrollY - e.deltaY / from.zoom };
+      }
+      const zoom = Math.max(wholeFit.zoom, Math.min(view.zoom * MAX_ZOOM, from.zoom * Math.exp(-e.deltaY / WHEEL_ZOOM_PX)));
+      return zoomAt(from, e.clientX, e.clientY, zoom);
+    });
+  };
+
   const resizePages = (factor: number) => {
+    if (cuts && cuttable) {
+      showToast("This board's pages are cut by hand · W to change them");
+      return;
+    }
     const next = Math.round(pageHeight * factor);
     const nextPages = boardPages(board, next);
     if (nextPages.every((p) => p.frameId)) {
@@ -246,6 +302,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     smaller: () => resizePages(1 / RESIZE_STEP),
     bigger: () => resizePages(RESIZE_STEP),
     grid: () => toggleOverlay("grid"),
+    whole: toggleWhole,
+    wheel,
     help: () => toggleOverlay("help"),
     fullscreen: toggleFullscreen,
     bar: () =>
@@ -285,6 +343,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // the mouse moves; with the laser on, only when the mouse heads for the bottom edge.
   const barVisible =
     ready &&
+    overlay !== "whole" &&
     (barPinned || overlay !== "none" || barHovered || (pointer.moving && (tool !== "laser" || pointer.nearBottom)));
 
   return (
@@ -297,15 +356,15 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         zenModeEnabled
         UIOptions={{ canvasActions: { toggleTheme: false } }}
       />
-      {!camera && (
+      {!camera && overlay !== "whole" && (
         <>
           <div className={styles.mask} style={{ top: 0, height: view.marginY }} />
           <div className={styles.mask} style={{ bottom: 0, height: view.marginY + barSpace }} />
         </>
       )}
 
-      {tool === "laser" && <LaserPointer />}
-      {tool === "select" && ready && (
+      {tool === "laser" && overlay !== "whole" && <LaserPointer />}
+      {tool === "select" && ready && overlay !== "whole" && (
         <SelectionLayer
           elements={board.elements}
           camera={camera ?? view}
@@ -360,6 +419,24 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
             go(i);
             setOverlay("none");
           }}
+        />
+      )}
+      {overlay === "whole" && ready && (
+        <CutOverview
+          pages={pages}
+          current={current}
+          camera={whole}
+          editable={cuttable}
+          state={cutState}
+          onCuts={changeCuts}
+          onSave={saveCutsNow}
+          onAutomatic={() => changeCuts(null)}
+          onShowAll={() => setWholeMoved(null)}
+          onPick={(i) => {
+            go(i);
+            setOverlay("none");
+          }}
+          onClose={() => setOverlay("none")}
         />
       )}
       {overlay === "help" && <HelpOverlay onClose={() => setOverlay("none")} />}
