@@ -61,29 +61,36 @@ interface Props {
   /** The selection's opacity (0 to 100), shown as a slider next to the actions. */
   opacity: number;
   onOpacity: (opacity: number) => void;
+  /** The page on screen, in scene coordinates: Ctrl+A selects what lies inside it. */
+  page: Box;
 }
 
 /**
  * The select tool. Sits over the canvas, so dragging draws a selection box
  * instead of panning (Alt+drag draws a lasso), and a click picks one element.
- * Shift adds to the selection. Selected elements are outlined, with their
- * actions just above them.
+ * Shift adds to the selection and Ctrl+A takes the whole page. Selected
+ * elements are outlined, with their actions just above them.
  */
-export function SelectionLayer({ elements, camera, selected, onSelect, actions, opacity, onOpacity }: Props) {
+export function SelectionLayer({ elements, camera, selected, onSelect, actions, opacity, onOpacity, page }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
 
-  // Ctrl+C copies, as on excalidraw.com. The first action is the copy.
-  const latest = useRef({ selected, actions });
+  // Ctrl+A selects the page and Ctrl+C runs the copy action, as on excalidraw.com.
+  const latest = useRef({ elements, selected, onSelect, actions, page });
   useEffect(() => {
-    latest.current = { selected, actions };
+    latest.current = { elements, selected, onSelect, actions, page };
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const { selected, actions } = latest.current;
-      const action = actions.find((a) => a.shortcut === "Ctrl+C");
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && selected.length && action) {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const { elements, selected, onSelect, actions, page } = latest.current;
+      const key = e.key.toLowerCase();
+      const copy = actions.find((a) => a.shortcut === "Ctrl+C");
+      if (key === "a") {
         e.preventDefault();
-        action.run(selected);
+        onSelect(elementsInBox(elements, page));
+      } else if (key === "c" && selected.length && copy) {
+        e.preventDefault();
+        copy.run(selected);
       }
     };
     window.addEventListener("keydown", onKey);

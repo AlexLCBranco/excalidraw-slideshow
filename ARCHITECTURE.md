@@ -119,14 +119,18 @@ laser, then the board).
   lasso instead: elements count as inside when the corners, edge midpoints
   and centre of their bounds all fall within the loop (even-odd rule). Shift
   adds to the selection; Shift+click on a selected element takes it out
-  (`extendSelection`). A selection belongs to its page.
+  (`extendSelection`). Ctrl+A selects what lies wholly inside the current
+  page. A selection belongs to its page.
   Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
   into excalidraw.com as shapes. Copy image puts a PNG on the clipboard,
   drawn by Excalidraw’s `exportToBlob` in dark mode at 2x (at most 4096 px a
   side) with any opacity changes applied, so it looks as it does on screen
   (`lib/render.ts`). The blob promise goes straight into the `ClipboardItem`,
-  so the copy still counts as coming from the click. None of them change the board.
+  so the copy still counts as coming from the click. Copy text takes the
+  text elements (as typed, not as wrapped in their shape) in reading order:
+  rows top to bottom, where a text joins a row if its middle is above the
+  row’s bottom, then left to right (`selectionText`). None of them change the board.
 - **Opacity.** A slider next to the selection actions dims the selected
   elements, like excalidraw.com's, but only on screen. The chosen values
   live in `Slideshow` state (`domain/opacity.ts`) and are pushed to

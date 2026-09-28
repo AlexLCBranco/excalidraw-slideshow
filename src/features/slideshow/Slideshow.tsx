@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
-import { clipboardText } from "../../domain/selection";
+import { clipboardText, selectionText } from "../../domain/selection";
 import type { SceneElement } from "../../domain/types";
 import { renderPicture } from "../../lib/render";
 import {
@@ -195,6 +195,17 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           ),
     },
     {
+      label: "Copy text",
+      run: (els) => {
+        const text = selectionText(els);
+        if (!text) return showToast("No writing in the selection");
+        navigator.clipboard.writeText(text).then(
+          () => showToast("Copied the text"),
+          () => showToast("The browser didn't allow copying"),
+        );
+      },
+    },
+    {
       label: "Reset",
       // Selected elements come from the board, so they carry its own opacities.
       run: (els) => setOpacities((o) => ({ ...o, ...Object.fromEntries(els.map((e) => [e.id, e.opacity ?? 100])) })),
@@ -301,6 +312,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           selected={selected}
           onSelect={(elements) => setSelection({ page: current, elements })}
           actions={selectionActions}
+          page={page}
           opacity={selected.length ? opacityOf(selected[0], opacities) : 100}
           onOpacity={(value) =>
             setOpacities((o) => ({ ...o, ...Object.fromEntries(selected.map((e) => [e.id, value])) }))

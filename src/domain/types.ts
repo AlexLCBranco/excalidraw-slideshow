@@ -24,6 +24,9 @@ export interface SceneElement {
   fileId?: string | null;
   /** 0 to 100. */
   opacity?: number;
+  /** A text element's words: `originalText` as typed, `text` as wrapped to fit its shape. */
+  text?: string;
+  originalText?: string;
   /** Excalidraw's stacking-order key. */
   index?: string | null;
 }

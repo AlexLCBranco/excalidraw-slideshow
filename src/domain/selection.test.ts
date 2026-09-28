@@ -7,6 +7,7 @@ import {
   elementsInBox,
   elementsInLasso,
   extendSelection,
+  selectionText,
   toScene,
   toScreen,
 } from "./selection";
@@ -100,6 +101,25 @@ describe("toScene / toScreen", () => {
     const camera = { zoom: 2, scrollX: 30, scrollY: -10 };
     const box = boxBetween(0, 0, 100, 50);
     expect(toScreen(camera, toScene(camera, box))).toEqual(box);
+  });
+});
+
+describe("selectionText", () => {
+  const text = (id: string, x: number, y: number, words: string, extra: Partial<SceneElement> = {}) =>
+    rect(id, x, y, { type: "text", originalText: words, text: words, ...extra });
+
+  it("reads top to bottom, and left to right along a row", () => {
+    const els = [text("second", 0, 50, "second"), text("right", 100, 2, "right"), text("left", 0, 0, "left")];
+    expect(selectionText(els)).toBe("left right\nsecond");
+  });
+
+  it("uses the text as typed, not as wrapped inside a shape, and skips shapes", () => {
+    const els = [rect("box", 0, 0), text("label", 0, 0, "", { originalText: "one line", text: "one\nline" })];
+    expect(selectionText(els)).toBe("one line");
+  });
+
+  it("is empty when there is no writing", () => {
+    expect(selectionText([rect("box", 0, 0)])).toBe("");
   });
 });
 

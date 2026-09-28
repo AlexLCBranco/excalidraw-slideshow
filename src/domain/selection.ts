@@ -135,6 +135,30 @@ function withRelated(elements: readonly SceneElement[], picked: readonly SceneEl
 }
 
 /**
+ * The writing in a selection as plain text, in reading order: top to bottom,
+ * and left to right for texts side by side (their middles at the same height).
+ * Side-by-side texts share a line; each row starts a new one.
+ */
+export function selectionText(selected: readonly SceneElement[]): string {
+  const texts = selected
+    .flatMap((e) => {
+      const words = e.type === "text" && !e.isDeleted ? (e.originalText ?? e.text ?? "").trim() : "";
+      const b = words && elementBounds(e);
+      return b ? [{ words, ...b }] : [];
+    })
+    .sort((a, b) => a.y0 - b.y0);
+
+  const rows: (typeof texts)[] = [];
+  for (const t of texts) {
+    const row = rows.at(-1);
+    const middle = (t.y0 + t.y1) / 2;
+    if (row && middle <= Math.max(...row.map((r) => r.y1))) row.push(t);
+    else rows.push([t]);
+  }
+  return rows.map((row) => row.sort((a, b) => a.x0 - b.x0).map((t) => t.words).join(" ")).join("\n");
+}
+
+/**
  * The selection in Excalidraw's clipboard format, so it pastes into
  * excalidraw.com (or Obsidian) as real shapes, with the images it uses.
  */
