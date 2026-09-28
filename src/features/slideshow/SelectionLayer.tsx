@@ -1,13 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { type Camera, elementBounds } from "../../domain/pages";
-import { type Box, boxBetween, elementAt, elementsInBox, toScene, toScreen } from "../../domain/selection";
+import {
+  type Box,
+  boxAround,
+  elementAt,
+  elementsInBox,
+  elementsInLasso,
+  extendSelection,
+  type Point,
+  pointToScene,
+  toScene,
+  toScreen,
+} from "../../domain/selection";
 import type { SceneElement } from "../../domain/types";
 import styles from "./SelectionLayer.module.css";
 
 /** A drag shorter than this, in px, is a click: it picks the element under the mouse. */
 const CLICK_PX = 4;
 const isClick = (b: Box) => b.x1 - b.x0 < CLICK_PX && b.y1 - b.y0 < CLICK_PX;
+/** A lasso gets a new point once the mouse has moved this far, in px, which keeps the loop light. */
+const LOOP_STEP_PX = 3;
+
+interface Drag {
+  start: Point;
+  end: Point;
+  /** The lasso's points (Alt held at the start), or null for a box. */
+  loop: Point[] | null;
+  /** Shift held at the start: add to the selection instead of replacing it. */
+  shift: boolean;
+}
+
+/** What a drag picks on its own, before Shift is taken into account. A tiny drag is a click. */
+function pick(d: Drag, elements: readonly SceneElement[], camera: Camera) {
+  const area = boxAround(d.loop ?? [d.start, d.end]);
+  if (isClick(area)) {
+    const p = pointToScene(camera, d.end);
+    return { click: true, picked: elementAt(elements, p.x, p.y) };
+  }
+  const picked = d.loop
+    ? elementsInLasso(elements, d.loop.map((p) => pointToScene(camera, p)))
+    : elementsInBox(elements, toScene(camera, area));
+  return { click: false, picked };
+}
 
 export interface SelectionAction {
   label: string;
@@ -30,11 +65,12 @@ interface Props {
 
 /**
  * The select tool. Sits over the canvas, so dragging draws a selection box
- * instead of panning, and a click picks one element. Selected elements are
- * outlined, with their actions just above them.
+ * instead of panning (Alt+drag draws a lasso), and a click picks one element.
+ * Shift adds to the selection. Selected elements are outlined, with their
+ * actions just above them.
  */
 export function SelectionLayer({ elements, camera, selected, onSelect, actions, opacity, onOpacity }: Props) {
-  const [drag, setDrag] = useState<{ x: number; y: number; box: Box } | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
 
   // Ctrl+C copies, as on excalidraw.com. The first action is the copy.
   const latest = useRef({ selected, actions });
@@ -56,28 +92,30 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions, 
 
   const onDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({ x: e.clientX, y: e.clientY, box: boxBetween(e.clientX, e.clientY, e.clientX, e.clientY) });
+    const p = { x: e.clientX, y: e.clientY };
+    setDrag({ start: p, end: p, loop: e.altKey ? [p] : null, shift: e.shiftKey });
   };
   const onMove = (e: React.PointerEvent) => {
-    if (drag) setDrag({ ...drag, box: boxBetween(drag.x, drag.y, e.clientX, e.clientY) });
-  };
-  const onUp = () => {
     if (!drag) return;
-    const { box } = drag;
-    setDrag(null);
-    if (isClick(box)) {
-      const p = toScene(camera, box);
-      onSelect(elementAt(elements, p.x0, p.y0));
-    } else {
-      onSelect(elementsInBox(elements, toScene(camera, box)));
-    }
+    const p = { x: e.clientX, y: e.clientY };
+    const last = drag.loop?.at(-1);
+    const loop = last && Math.hypot(p.x - last.x, p.y - last.y) >= LOOP_STEP_PX ? [...drag.loop!, p] : drag.loop;
+    setDrag({ ...drag, end: p, loop });
   };
 
-  // While a box is dragged, what it would pick is outlined live, as on excalidraw.com.
-  const picking = useMemo(
-    () => (drag ? (isClick(drag.box) ? [] : elementsInBox(elements, toScene(camera, drag.box))) : null),
-    [drag, elements, camera],
-  );
+  const onUp = () => {
+    if (!drag) return;
+    setDrag(null);
+    const { click, picked } = pick(drag, elements, camera);
+    onSelect(extendSelection(elements, selected, picked, { shift: drag.shift, click }));
+  };
+
+  // While dragging, what the box or lasso would pick is outlined live, as on excalidraw.com.
+  const picking = useMemo(() => {
+    if (!drag) return null;
+    const { click, picked } = pick(drag, elements, camera);
+    return extendSelection(elements, selected, click ? [] : picked, { shift: drag.shift, click: false });
+  }, [drag, elements, camera, selected]);
 
   const outlines = (picking ?? selected).flatMap((e) => {
     const b = elementBounds(e);
@@ -97,13 +135,14 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions, 
         {outlines.map((b, i) => (
           <rect key={i} className={styles.outline} x={b.x0} y={b.y0} width={b.x1 - b.x0} height={b.y1 - b.y0} />
         ))}
-        {drag && (
+        {drag?.loop && <path className={styles.box} d={`M${drag.loop.map((p) => `${p.x},${p.y}`).join("L")}Z`} />}
+        {drag && !drag.loop && (
           <rect
             className={styles.box}
-            x={drag.box.x0}
-            y={drag.box.y0}
-            width={drag.box.x1 - drag.box.x0}
-            height={drag.box.y1 - drag.box.y0}
+            x={Math.min(drag.start.x, drag.end.x)}
+            y={Math.min(drag.start.y, drag.end.y)}
+            width={Math.abs(drag.end.x - drag.start.x)}
+            height={Math.abs(drag.end.y - drag.start.y)}
           />
         )}
       </svg>

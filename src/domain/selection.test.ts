@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { boxBetween, clipboardText, elementAt, elementsInBox, toScene, toScreen } from "./selection";
+import {
+  boxBetween,
+  clipboardText,
+  elementAt,
+  elementsInBox,
+  elementsInLasso,
+  extendSelection,
+  toScene,
+  toScreen,
+} from "./selection";
 import type { SceneElement } from "./types";
 
 const rect = (id: string, x: number, y: number, extra: Partial<SceneElement> = {}): SceneElement => ({
@@ -29,6 +38,52 @@ describe("elementsInBox", () => {
       rect("other", 200, 0),
     ];
     expect(ids(elementsInBox(els, boxBetween(-1, -1, 20, 20)))).toEqual(["a", "b", "label"]);
+  });
+});
+
+describe("elementsInLasso", () => {
+  // An L-shaped loop: the bottom-right corner of its 100x100 square is cut out.
+  const loop = [
+    { x: -1, y: -1 },
+    { x: 101, y: -1 },
+    { x: 101, y: 50 },
+    { x: 50, y: 50 },
+    { x: 50, y: 101 },
+    { x: -1, y: 101 },
+  ];
+
+  it("picks elements wholly inside the loop, even where a box around it would take more", () => {
+    const els = [rect("top-left", 0, 0), rect("top-right", 80, 0), rect("bottom-left", 0, 80), rect("notch", 80, 80)];
+    expect(ids(elementsInLasso(els, loop))).toEqual(["top-left", "top-right", "bottom-left"]);
+  });
+
+  it("skips elements the loop only crosses", () => {
+    expect(elementsInLasso([rect("across", 45, 45)], loop)).toEqual([]);
+  });
+
+  it("needs a loop, not a line", () => {
+    expect(elementsInLasso([rect("a", 0, 0)], loop.slice(0, 2))).toEqual([]);
+  });
+});
+
+describe("extendSelection", () => {
+  const els = [rect("a", 0, 0), rect("b", 20, 0), rect("c", 40, 0)];
+  const [a, b, c] = els;
+
+  it("replaces the selection without Shift", () => {
+    expect(ids(extendSelection(els, [a], [b], { shift: false, click: false }))).toEqual(["b"]);
+  });
+
+  it("adds with Shift, keeping the board's order", () => {
+    expect(ids(extendSelection(els, [c], [a], { shift: true, click: false }))).toEqual(["a", "c"]);
+  });
+
+  it("takes out an already selected element on Shift-click", () => {
+    expect(ids(extendSelection(els, [a, b], [b], { shift: true, click: true }))).toEqual(["a"]);
+  });
+
+  it("keeps the selection on a Shift-click on empty space", () => {
+    expect(ids(extendSelection(els, [a], [], { shift: true, click: true }))).toEqual(["a"]);
   });
 });
 

@@ -115,7 +115,11 @@ laser, then the board).
   picks the topmost element. Which elements that means is worked out in
   `domain/selection.ts` from element bounds, widened to whole groups and the
   text inside shapes, as excalidraw.com does. While the box is being dragged,
-  what it would pick is outlined live, using the same rule. A selection belongs to its page.
+  what it would pick is outlined live, using the same rule. Alt+drag draws a
+  lasso instead: elements count as inside when the corners, edge midpoints
+  and centre of their bounds all fall within the loop (even-odd rule). Shift
+  adds to the selection; Shift+click on a selected element takes it out
+  (`extendSelection`). A selection belongs to its page.
   Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
   into excalidraw.com as shapes. Copy image puts a PNG on the clipboard,

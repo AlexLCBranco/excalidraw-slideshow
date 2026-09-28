@@ -9,6 +9,8 @@ const SHORTCUTS: [keys: string[], action: string][] = [
   [["H"], "hide / show the control bar"],
   [["K"], "laser pointer"],
   [["V"], "select / hand (select: drag a box, Ctrl+C copies)"],
+  [["Alt", "drag"], "lasso: draw a loop around what to select"],
+  [["Shift", "drag"], "add to the selection (Shift+click adds or removes one)"],
   [["-", "="], "smaller / bigger pages (boards without frames)"],
   [["O"], "open another board"],
   [["?"], "these shortcuts"],
