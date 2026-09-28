@@ -52,5 +52,3 @@ camera maths live in `domain/`, which has the tests.
 ## Open problems
 
 - The lasso feels off, and it isn't yet known why
-- `README.md` is out of date (still describes the local `.bat` as the main
-  way to run it, not the hosted site)
