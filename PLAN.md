@@ -14,6 +14,10 @@ The record of what was built and why lives in [`ARCHITECTURE.md`](./ARCHITECTURE
 Ideas raised so far, not yet asked for. Don't start one without the owner
 asking.
 
+- Step-by-step reveals (select elements, "Add step"; → shows each step
+  before moving on, ← hides them). Built, tested and taken out for now: the
+  full version lives on the `reveal-steps` branch (commit 9d19e4e). To bring
+  it back, cherry-pick that commit onto `main`.
 - Revisit the lasso (Alt+drag). The owner finds it weird in use; find out
   what feels off before changing it.
 

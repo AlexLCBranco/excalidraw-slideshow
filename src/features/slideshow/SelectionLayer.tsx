@@ -49,8 +49,6 @@ export interface SelectionAction {
   /** Shown in the tooltip, e.g. "Ctrl+C". */
   shortcut?: string;
   run: (selected: SceneElement[]) => void;
-  /** Whether the action applies to this selection. Shown only when it does; always, if left out. */
-  available?: (selected: SceneElement[]) => boolean;
 }
 
 interface Props {
@@ -166,18 +164,16 @@ export function SelectionLayer({ elements, camera, selected, onSelect, actions, 
           onMouseDown={(e) => e.preventDefault()}
         >
           <span className={styles.count}>{selected.length} selected</span>
-          {actions
-            .filter((a) => a.available?.(selected) ?? true)
-            .map((a) => (
-              <button
-                key={a.label}
-                className={styles.action}
-                onClick={() => a.run(selected)}
-                title={a.shortcut ? `${a.label} (${a.shortcut})` : a.label}
-              >
-                {a.label}
-              </button>
-            ))}
+          {actions.map((a) => (
+            <button
+              key={a.label}
+              className={styles.action}
+              onClick={() => a.run(selected)}
+              title={a.shortcut ? `${a.label} (${a.shortcut})` : a.label}
+            >
+              {a.label}
+            </button>
+          ))}
           <label className={styles.opacity} title="Opacity, only while presenting: the board is never changed">
             Opacity
             <input

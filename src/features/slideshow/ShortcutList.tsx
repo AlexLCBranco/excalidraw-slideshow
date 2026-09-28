@@ -1,7 +1,7 @@
 import styles from "./ShortcutList.module.css";
 
 const SHORTCUTS: [keys: string[], action: string][] = [
-  [["←", "→"], "previous / next page, or step on a page with steps"],
+  [["←", "→"], "previous / next page"],
   [["Home", "End"], "first / last page"],
   [["12", "Enter"], "go to page 12"],
   [["G"], "all pages"],

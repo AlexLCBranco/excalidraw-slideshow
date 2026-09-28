@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { opacityOf, screenOpacities, withOpacities } from "./opacity";
+import { opacityOf, withOpacities } from "./opacity";
 
 describe("withOpacities", () => {
   it("changes only the listed elements and leaves the others as they were", () => {
@@ -10,18 +10,6 @@ describe("withOpacities", () => {
     expect(a2).toEqual({ id: "a", opacity: 30 });
     expect(a).toEqual({ id: "a", opacity: 100 });
     expect(b2).toBe(b);
-  });
-});
-
-describe("screenOpacities", () => {
-  it("hides, restores revealed elements to their opacity, and leaves the rest out", () => {
-    const els = [{ id: "hidden" }, { id: "revealed", opacity: 70 }, { id: "faded" }, { id: "plain" }];
-    const hideable = new Set(["hidden", "revealed"]);
-    expect(screenOpacities(els, { faded: 20 }, hideable, new Set(["hidden"]))).toEqual({
-      hidden: 0,
-      revealed: 70,
-      faded: 20,
-    });
   });
 });
 
