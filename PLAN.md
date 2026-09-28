@@ -14,7 +14,8 @@ The record of what was built and why lives in [`ARCHITECTURE.md`](./ARCHITECTURE
 Ideas raised so far, not yet asked for. Don't start one without the owner
 asking.
 
-_Nothing queued._
+- Revisit the lasso (Alt+drag). The owner finds it weird in use; find out
+  what feels off before changing it.
 
 ## Not being built
 
