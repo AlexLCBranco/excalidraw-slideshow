@@ -3,22 +3,15 @@
 What is queued, what is in flight, and what is deliberately not being built.
 The record of what was built and why lives in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-## The big idea
+## Where this app fits
 
-The owner wants to combine several apps into their Excalidraw boards, so the
-board becomes the place everything lives. The first one named: a live
-**Trello list** on a board. (tldraw, a more programmable canvas, came up as an
-alternative base; the decision so far is to stay on Excalidraw, because the
-boards are `.excalidraw` files and only Excalidraw draws them exactly.)
+The owner's big idea is the **gauntlet**: a canvas where everything is a
+live, smooth widget (a "stone"). It is a separate project, not this one.
 
-### Trello list: open questions (ask before building)
-
-- Where: while drawing on excalidraw.com (not possible there: Trello doesn't
-  allow embedding, as far as we know) or while presenting in this app
-  (possible: Excalidraw's `renderEmbeddable` lets the app draw its own
-  content in place of an embedded Trello link)?
-- See only, or also move / tick / add cards?
-- Offline: show the last version seen, update when online?
+This app is **one of the stones**: a viewer for the owner's boards, the
+ones that exist now and the ones made later in the gauntlet. It stays a
+viewer, and its hard rules (read-only, ←/→ first) stay as they are. It does
+not host other apps or live widgets inside boards; that is the gauntlet's job.
 
 ## In flight
 
@@ -45,6 +38,10 @@ asking.
   what feels off before changing it.
 
 ## Not being built
+
+- Other apps or live widgets inside boards (a Trello list, Boardkit). Trello
+  was dropped: the owner only wanted a drag-and-drop list, which Boardkit
+  already is. Live widgets belong to the gauntlet, not this viewer.
 
 - Editing workbooks, recalculating formulas, charts and shapes drawn in
   Excel (ExcelJS doesn't read them), bold and italic cell text (Excalidraw

@@ -63,8 +63,9 @@ camera maths live in `domain/`, which has the tests.
 
 ## What's next
 
-- The big idea: bring other apps into the boards, starting with a live
-  Trello list. Open questions to settle first are in `PLAN.md`
+- Stays a viewer: the owner's big idea (the "gauntlet", a canvas of live
+  widgets) is a separate project, and this app is one of its pieces. No
+  Trello list or other apps inside boards (see `PLAN.md`)
 - Step-by-step reveals: built and taken out for now; kept on a branch
 - Revisit the lasso, which the owner finds weird in use
 
