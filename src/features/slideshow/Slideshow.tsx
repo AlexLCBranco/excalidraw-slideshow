@@ -4,32 +4,27 @@ import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { type Addition, isAdded, newId, placeImage, removeAddition, replaceAddition, textSizeFor } from "../../domain/additions";
-import { canCut, pagesFromCuts } from "../../domain/cuts";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
-import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
+import { type Camera, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { tabOf } from "../../domain/sheetPages";
-import type { SceneElement } from "../../domain/types";
+import type { Page, SceneElement } from "../../domain/types";
 import { additionScene, readImage } from "../../lib/additions";
 import {
   loadAdditions,
   loadBarPinned,
-  loadCuts,
   loadLastPage,
   loadMouseMode,
-  loadPageHeight,
   type MouseMode,
   saveAdditions,
   saveBarPinned,
-  saveCuts,
   saveLastPage,
   saveMouseMode,
-  savePageHeight,
 } from "../../lib/storage";
 import { AddedLayer } from "./AddedLayer";
 import { type Confirm, ConfirmDialog } from "./ConfirmDialog";
 import { ControlBar } from "./ControlBar";
-import { CutOverview, type CutState } from "./CutOverview";
+import { CutOverview } from "./CutOverview";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { NoteLayer } from "./NoteLayer";
@@ -40,6 +35,7 @@ import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
 import { TextLayer } from "./TextLayer";
 import { useFullscreen } from "./useFullscreen";
+import { usePages } from "./usePages";
 import { usePageThumbnails } from "./usePageThumbnails";
 import { usePointerActivity } from "./usePointerActivity";
 import { isTyping, useSlideKeys } from "./useSlideKeys";
@@ -57,7 +53,6 @@ interface Props {
 
 /** Excalidraw re-centres the scene just after it mounts; wait this long before taking over the camera. */
 const SETTLE_MS = 300;
-const RESIZE_STEP = 1.1;
 /** A typed page number is forgotten after this long without Enter. */
 const TYPED_PAGE_MS = 3000;
 /** Each zoom button press zooms by this much, up to MAX_ZOOM times the fitted page. */
@@ -92,20 +87,8 @@ const tokenPx = (name: string) => parseFloat(cssToken(name)) || 0;
 export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onClose }: Props) {
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [ready, setReady] = useState(false);
-  const [pageHeight, setPageHeight] = useState(() => loadPageHeight(board.name) ?? DEFAULT_PAGE_HEIGHT);
-  const autoPages = useMemo(() => boardPages(board, pageHeight), [board, pageHeight]);
-  // Cuts moved by hand in the whole-board view (W). Like every change made while viewing,
-  // they last until the board is closed, unless saved: then they're remembered in this browser.
-  const [cuts, setCuts] = useState<readonly number[] | null>(() => loadCuts(board.name));
-  const [savedCuts, setSavedCuts] = useState(cuts);
-  // A workbook's pages follow its rows and pictures (domain/sheetPages.ts), not cuts.
-  const cuttable = !board.pages && canCut(autoPages);
-  const pages = useMemo(
-    () => (cuts && cuttable ? pagesFromCuts(autoPages, cuts) : autoPages),
-    [autoPages, cuts, cuttable],
-  );
-  const cutsSaved = JSON.stringify(cuts) === JSON.stringify(savedCuts);
-  const cutState: CutState = cuts ? (cutsSaved ? "saved" : "unsaved") : cutsSaved ? "automatic" : "automatic-unsaved";
+  const [toast, showToast] = useToast();
+  const { pages, cuttable, cutState, changeCuts, saveCuts, smaller, bigger } = usePages(board, showToast, keepSpot);
   // Only a resume (no page in the address) is announced.
   const [resumedAt] = useState(() => (initialPage === null ? Math.min(loadLastPage(board.name), pages.length - 1) : 0));
   const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
@@ -117,7 +100,6 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [barHovered, setBarHovered] = useState(false);
   const [barPinned, setBarPinned] = useState(loadBarPinned);
   const { width, height } = useViewportSize();
-  const [toast, showToast] = useToast();
   const [fullscreen, toggleFullscreen] = useFullscreen();
   const pointer = usePointerActivity();
 
@@ -277,17 +259,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     toggleOverlay("whole");
   };
 
-  // New cuts keep the same part of the board on screen.
-  const changeCuts = (next: readonly number[] | null) => {
-    const nextPages = next ? pagesFromCuts(autoPages, next) : autoPages;
-    setIndex(pageAt(nextPages, (page.y0 + page.y1) / 2));
-    setCuts(next);
-  };
-
-  const saveCutsNow = () => {
-    saveCuts(board.name, cuts);
-    setSavedCuts(cuts);
-  };
+  /** New pages keep the same part of the board on screen. */
+  function keepSpot(next: readonly Page[]) {
+    setIndex(pageAt(next, (page.y0 + page.y1) / 2));
+  }
 
   // Scrolling moves around the whole-board view, Ctrl+scrolling zooms it around the mouse.
   const wheel = (e: WheelEvent) => {
@@ -300,27 +275,6 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       const zoom = Math.max(wholeFit.zoom, Math.min(view.zoom * MAX_ZOOM, from.zoom * Math.exp(-e.deltaY / WHEEL_ZOOM_PX)));
       return zoomAt(from, e.clientX, e.clientY, zoom);
     });
-  };
-
-  const resizePages = (factor: number) => {
-    if (board.pages) {
-      showToast("A workbook's pages follow its rows and pictures");
-      return;
-    }
-    if (cuts && cuttable) {
-      showToast("This board's pages are cut by hand · W to change them");
-      return;
-    }
-    const next = Math.round(pageHeight * factor);
-    const nextPages = boardPages(board, next);
-    if (nextPages.every((p) => p.frameId)) {
-      showToast("This board uses its frames as pages");
-      return;
-    }
-    setIndex(pageAt(nextPages, (page.y0 + page.y1) / 2));
-    setPageHeight(next);
-    savePageHeight(board.name, next);
-    showToast(`${nextPages.length} pages`);
   };
 
   // Zooms around the middle of the screen, starting from the live camera so a drag is kept.
@@ -435,8 +389,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     previous: () => go(current - 1),
     first: () => go(0),
     last: () => go(pages.length - 1),
-    smaller: () => resizePages(1 / RESIZE_STEP),
-    bigger: () => resizePages(RESIZE_STEP),
+    smaller,
+    bigger,
     grid: () => toggleOverlay("grid"),
     whole: toggleWhole,
     wheel,
@@ -623,7 +577,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           lockedNote={board.pages ? "A workbook's pages follow its rows and pictures" : "This board uses its frames as pages"}
           state={cutState}
           onCuts={changeCuts}
-          onSave={saveCutsNow}
+          onSave={saveCuts}
           onAutomatic={() => changeCuts(null)}
           onShowAll={() => setWholeMoved(null)}
           onPick={(i) => {
