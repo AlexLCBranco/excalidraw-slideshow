@@ -13,26 +13,42 @@
   pointer-events: none;
 }
 
-/* A workbook's controls: one strip along the bottom edge, sheet tabs at the left, as in Excel. */
+/* A workbook's strips, placed as in Excel: the controls along the top, the sheet tabs along the bottom. */
 .dock {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
   z-index: var(--z-bar);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
   height: var(--dock-height);
-  border-top: 1px solid var(--border);
   background: var(--surface);
   transition: opacity var(--duration-slow) var(--ease-out), translate var(--duration-slow) var(--ease-out);
 }
 
+.dock[data-edge="top"] {
+  top: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dock[data-edge="bottom"] {
+  bottom: 0;
+  justify-content: flex-start;
+  border-top: 1px solid var(--border);
+}
+
 .dock[data-visible="false"] {
   opacity: 0;
-  translate: 0 100%;
   pointer-events: none;
+}
+
+.dock[data-edge="top"][data-visible="false"] {
+  translate: 0 -100%;
+}
+
+.dock[data-edge="bottom"][data-visible="false"] {
+  translate: 0 100%;
 }
 
 .hud,

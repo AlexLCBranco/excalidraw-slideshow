@@ -73,19 +73,22 @@ const pixel = async (x, y) => {
 const maskHeight = await page.$eval("div[class*=mask]", (m) => m.getBoundingClientRect().height);
 const sheet = await pixel(5, Math.round(maskHeight) + 5);
 check(sheet.join() === "0,0,0", `empty cells of the column-painted sheet are black (got rgb ${sheet.join(",")})`);
-// Shown as Excel shows a sheet: from the top edge, with one strip along the bottom
-// holding the sheet tabs at the left and the controls beside them.
-const top = await pixel(5, 2);
-check(top.join() === "0,0,0", `the page starts at the top edge, not centred (top-left is rgb ${top.join(",")})`);
+// Laid out as Excel lays out a sheet: the controls in a strip along the top (where the
+// ribbon is), the sheet tabs along the bottom-left, and the page right under the controls.
 const strip = await page.evaluate(() => {
   const nav = document.querySelector('nav[aria-label="Sheets"]').getBoundingClientRect();
   const bar = document.querySelector('button[title="All pages (G)"]').getBoundingClientRect();
-  return { navLeft: nav.left, navBottom: nav.bottom, barTop: bar.top, barLeft: bar.left, navRight: nav.right, h: innerHeight };
+  const dock = getComputedStyle(document.documentElement).getPropertyValue("--dock-height");
+  return { navLeft: nav.left, navBottom: nav.bottom, barBottom: bar.bottom, dock: parseFloat(dock), h: innerHeight };
 });
 check(
-  strip.navLeft < 2 && strip.h - strip.navBottom < 8 && strip.barTop > strip.h - 60 && strip.barLeft > strip.navRight - 2,
-  `sheet tabs at the bottom-left, controls to their right on the same strip (${JSON.stringify(strip)})`,
+  strip.navLeft < 2 && strip.h - strip.navBottom < 8 && strip.barBottom <= strip.dock,
+  `controls along the top, sheet tabs at the bottom-left (${JSON.stringify(strip)})`,
 );
+const top = await pixel(5, strip.dock + 2);
+const toastTop = await page.$eval("div[class*=toast]", (t) => t.getBoundingClientRect().top);
+check(toastTop >= strip.dock, `notices show below the controls, not over them (top at ${toastTop} px)`);
+check(top.join() === "0,0,0", `the page starts right under the controls (rgb ${top.join(",")} there)`);
 const middle = await pixel(800, 450);
 check(!["0,0,0", "18,18,18"].includes(middle.join()), `the picture shows (middle of the page is rgb ${middle.join(",")}, not sheet black or background)`);
 

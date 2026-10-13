@@ -148,10 +148,11 @@ app owns the camera: `fitPage` computes `zoom`, `scrollX` and `scrollY` so the
 page is centred and fitted (Excalidraw draws scene point `p` at screen
 `(p + scroll) * zoom`), then `updateScene` applies them. Two masks in the
 background colour cover whatever of the neighbouring pages would still show
-above and below. A workbook is shown as Excel shows a sheet: the page is held
-to the top edge (any spare space goes below it), and one full-width strip
-along the bottom holds the sheet tabs at the left and the control bar
-(`docked`) at the right, instead of the floating bar.
+above and below. A workbook is laid out as Excel lays out a sheet: the control
+bar (`docked`) in a full-width strip along the top, where Excel's ribbon
+is; the sheet tabs in one along the bottom; and the page held to the top of
+the space between them (any spare space goes below it). Notices show below
+the top strip.
 
 Keys are captured on `window` in the capture phase, so Excalidraw never sees
 the arrows (it would pan with them). The mouse wheel is swallowed so the
@@ -364,6 +365,8 @@ local ports are fixed because connected folders are remembered per address.
 
 - **v0.0.22** — Added text and pictures can be resized (corner handle) and
   moved by dragging them, not only their tag.
+- **v0.0.24** — Workbooks: the controls move to a strip along the top, as
+  Excel's ribbon; the sheet tabs stay along the bottom.
 - **v0.0.23** — Workbooks look like Excel: pages fill a screenful of rows,
   start at the top edge, and the sheet tabs and controls share one strip
   along the bottom.

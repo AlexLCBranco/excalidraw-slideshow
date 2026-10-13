@@ -1,4 +1,4 @@
-/* Sits at the left of a workbook's bottom strip, where Excel keeps its sheet tabs. */
+/* Fills a workbook's bottom strip from the left, where Excel keeps its sheet tabs. */
 .tabs {
   display: flex;
   flex: 1 1 auto;

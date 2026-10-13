@@ -155,13 +155,15 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
-  // A pinned bar gets its own strip at the bottom, and the page is fitted above it. A workbook
-  // is shown as Excel shows it: its strip holds the sheet tabs and the bar, and the page starts at the top.
+  // A pinned bar gets its own strip at the bottom, and the page is fitted above it. A workbook is
+  // laid out as Excel lays out a sheet: the bar in a strip along the top (where Excel's ribbon is),
+  // the sheet tabs in one along the bottom, and the page held to the top of the space between them.
   const barSpace = barPinned ? tokenPx(board.tabs ? "--dock-height" : "--bar-space") : 0;
-  const view = useMemo(
-    () => fitPage(page, width, height - barSpace, board.tabs ? "top" : "centre"),
-    [page, width, height, barSpace, board.tabs],
-  );
+  const topSpace = board.tabs ? barSpace : 0;
+  const view = useMemo(() => {
+    const fit = fitPage(page, width, height - topSpace - barSpace, board.tabs ? "top" : "centre");
+    return { ...fit, scrollY: fit.scrollY + topSpace / fit.zoom };
+  }, [page, width, height, topSpace, barSpace, board.tabs]);
 
   useEffect(() => {
     if (!api) return;
@@ -365,7 +367,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     const from = { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY };
     const zoom = Math.min(from.zoom * factor, view.zoom * MAX_ZOOM);
     if (zoom <= view.zoom * 1.001) return setZoomed(null);
-    setZoomed({ page: current, camera: zoomAt(from, width / 2, (height - barSpace) / 2, zoom) });
+    setZoomed({ page: current, camera: zoomAt(from, width / 2, (height + topSpace - barSpace) / 2, zoom) });
   };
 
   const addText = (at: { x: number; y: number }, text: string) => {
@@ -559,7 +561,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       />
       {!camera && overlay !== "whole" && (
         <>
-          <div className={styles.mask} style={{ top: 0, height: view.marginTop }} />
+          <div className={styles.mask} style={{ top: 0, height: view.marginTop + topSpace }} />
           <div className={styles.mask} style={{ bottom: 0, height: view.marginBottom + barSpace }} />
         </>
       )}
@@ -608,15 +610,26 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
             {current + 1} / {pages.length}
           </div>
           {board.tabs ? (
-            <div
-              className={styles.dock}
-              data-visible={barVisible}
-              onMouseEnter={() => setBarHovered(true)}
-              onMouseLeave={() => setBarHovered(false)}
-            >
-              <SheetTabs tabs={board.tabs} current={tabOf(board.tabs, current)} onPick={(tab) => go(tab.firstPage)} />
-              {controlBar}
-            </div>
+            <>
+              <div
+                className={styles.dock}
+                data-edge="top"
+                data-visible={barVisible}
+                onMouseEnter={() => setBarHovered(true)}
+                onMouseLeave={() => setBarHovered(false)}
+              >
+                {controlBar}
+              </div>
+              <div
+                className={styles.dock}
+                data-edge="bottom"
+                data-visible={barVisible}
+                onMouseEnter={() => setBarHovered(true)}
+                onMouseLeave={() => setBarHovered(false)}
+              >
+                <SheetTabs tabs={board.tabs} current={tabOf(board.tabs, current)} onPick={(tab) => go(tab.firstPage)} />
+              </div>
+            </>
           ) : (
             controlBar
           )}
@@ -680,7 +693,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       {confirm && <ConfirmDialog confirm={confirm} onDone={() => setConfirm(null)} />}
 
       {typed && <div className={styles.typed}>Go to page {typed} ↵</div>}
-      <div className={styles.toast} data-visible={toast !== null}>
+      <div className={styles.toast} data-visible={toast !== null} style={{ marginTop: topSpace }}>
         {toast}
       </div>
     </div>
