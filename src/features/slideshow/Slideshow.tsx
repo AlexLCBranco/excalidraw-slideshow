@@ -1,11 +1,11 @@
 import { CaptureUpdateAction, Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
-import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
+import type { BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { type Addition, isAdded, newId, placeImage, removeAddition, replaceAddition, textSizeFor } from "../../domain/additions";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
-import { type Camera, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
+import { pageAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { tabOf } from "../../domain/sheetPages";
 import type { Page, SceneElement } from "../../domain/types";
@@ -24,6 +24,7 @@ import {
 import { AddedLayer } from "./AddedLayer";
 import { type Confirm, ConfirmDialog } from "./ConfirmDialog";
 import { ControlBar } from "./ControlBar";
+import { cssToken } from "./cssTokens";
 import { CutOverview } from "./CutOverview";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
@@ -34,13 +35,13 @@ import { SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
 import { TextLayer } from "./TextLayer";
+import { useCamera } from "./useCamera";
 import { useFullscreen } from "./useFullscreen";
 import { usePages } from "./usePages";
 import { usePageThumbnails } from "./usePageThumbnails";
 import { usePointerActivity } from "./usePointerActivity";
 import { isTyping, useSlideKeys } from "./useSlideKeys";
 import { useToast } from "./useToast";
-import { useViewportSize } from "./useViewportSize";
 
 interface Props {
   board: Board;
@@ -55,11 +56,6 @@ interface Props {
 const SETTLE_MS = 300;
 /** A typed page number is forgotten after this long without Enter. */
 const TYPED_PAGE_MS = 3000;
-/** Each zoom button press zooms by this much, up to MAX_ZOOM times the fitted page. */
-const ZOOM_STEP = 1.5;
-const MAX_ZOOM = 8;
-/** In the whole-board view, Ctrl+scrolling this many px zooms by about 2.7 times. */
-const WHEEL_ZOOM_PX = 300;
 /** How long the list of what a workbook shows differently from Excel stays up. */
 const NOT_SHOWN_MS = 8000;
 
@@ -67,17 +63,6 @@ type Overlay = "none" | "grid" | "help" | "whole";
 /** What the mouse does on the page: the remembered mode, or the laser or text tool for a while. */
 type Temporary = "laser" | "text";
 export type Tool = MouseMode | Temporary;
-
-const toAppState = (c: Camera) => ({
-  zoom: { value: c.zoom as NormalizedZoomValue },
-  scrollX: c.scrollX,
-  scrollY: c.scrollY,
-});
-
-/** A token from tokens.css, for values used in JS. */
-const cssToken = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-/** A length token, in px, for layout maths done in JS. */
-const tokenPx = (name: string) => parseFloat(cssToken(name)) || 0;
 
 /**
  * Shows one page of a board at a time. Excalidraw runs read-only; this
@@ -99,7 +84,6 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [typed, setTyped] = useState("");
   const [barHovered, setBarHovered] = useState(false);
   const [barPinned, setBarPinned] = useState(loadBarPinned);
-  const { width, height } = useViewportSize();
   const [fullscreen, toggleFullscreen] = useFullscreen();
   const pointer = usePointerActivity();
 
@@ -136,18 +120,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
-  // A pinned bar gets its own strip at the bottom, and the page is fitted above it. A workbook is
-  // laid out as Excel lays out a sheet: the bar in a strip along the top (where Excel's ribbon is),
-  // the sheet tabs in one along the bottom, and the page held to the top of the space between them.
-  const barSpace = barPinned ? tokenPx(board.tabs ? "--dock-height" : "--bar-space") : 0;
-  const topSpace = board.tabs ? barSpace : 0;
-  const view = useMemo(() => {
-    // A board is shown as on excalidraw.com: never past 100%, so on a big screen it isn't blown up.
-    const fit = board.tabs
-      ? fitPage(page, width, height - topSpace - barSpace, "top")
-      : fitPage(page, width, height - barSpace, "centre", 1);
-    return { ...fit, scrollY: fit.scrollY + topSpace / fit.zoom };
-  }, [page, width, height, topSpace, barSpace, board.tabs]);
+  const { view, camera, whole, liveCamera, topSpace, barSpace, zoomIn, zoomOut, resetZoom, holdDrag, wholeAround, showAll, wheel } =
+    useCamera({ api, ready, board, pages, current, wholeOpen: overlay === "whole", barPinned });
 
   useEffect(() => {
     if (!api) return;
@@ -155,19 +129,9 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     return () => clearTimeout(t);
   }, [api]);
 
-  // A zoom lasts until zoomed back out or the page changes. Zoomed, dragging pans freely.
-  const [zoomed, setZoomed] = useState<{ page: number; camera: Camera } | null>(null);
-  const camera = zoomed?.page === current ? zoomed.camera : null;
-
   // Like a zoom, a selection belongs to the page it was made on.
   const [selection, setSelection] = useState<{ page: number; elements: SceneElement[] } | null>(null);
   const selected = selection?.page === current ? selection.elements : [];
-
-  /** Excalidraw's camera as it is now, including where a drag with the hand left it. */
-  const liveCamera = () => {
-    const s = api?.getAppState();
-    return s ? { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY } : (camera ?? view);
-  };
 
   // A workbook's cell notes on this page, read by hovering their cell.
   const pageNotes = useMemo(
@@ -188,28 +152,6 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       captureUpdate: CaptureUpdateAction.NEVER,
     });
   }, [api, ready, opacities, added]);
-
-  // In view mode Excalidraw pans on every drag, so the page is re-fitted whenever the mouse is released.
-  const [releases, setReleases] = useState(0);
-  useEffect(() => {
-    const onRelease = () => setReleases((n) => n + 1);
-    window.addEventListener("pointerup", onRelease);
-    return () => window.removeEventListener("pointerup", onRelease);
-  }, []);
-
-  // The whole-board view (W) opens on the current page and its neighbours (a whole board
-  // of 30 pages would be a thin strip), then moves with the wheel, out to every page at once.
-  const wholeFit = useMemo(() => fitAll(pages, width, height, tokenPx("--space-8")), [pages, width, height]);
-  const [wholeMoved, setWholeMoved] = useState<Camera | null>(null);
-  const whole = wholeMoved ?? wholeFit;
-
-  // Only a zoomed page keeps where a drag left it; otherwise the camera snaps back on release.
-  const target = overlay === "whole" ? whole : (camera ?? view);
-  const refit = camera ? 0 : releases;
-  useEffect(() => {
-    if (!api || !ready) return;
-    api.updateScene({ appState: toAppState(target) });
-  }, [api, ready, target, refit]);
 
   useEffect(() => {
     saveLastPage(board.name, current);
@@ -234,10 +176,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // Hand and select are remembered; the laser is picked again to turn it off.
   // Only the hand pans, so leaving it while zoomed first keeps the view where a drag left it.
   const chooseTool = (t: Tool) => {
-    if (tool === "hand" && t !== "hand" && camera && api) {
-      const s = api.getAppState();
-      setZoomed({ page: current, camera: { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY } });
-    }
+    if (tool === "hand" && t !== "hand") holdDrag();
     if (t === "laser" || t === "text") {
       setTemporary((on) => (on === t ? null : t));
     } else {
@@ -254,8 +193,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const toggleOverlay = (o: Overlay) => setOverlay((cur) => (cur === o ? "none" : o));
 
   const toggleWhole = () => {
-    const around = pages.slice(Math.max(0, current - 1), current + 2);
-    setWholeMoved(fitAll(around, width, height, tokenPx("--space-8")));
+    wholeAround();
     toggleOverlay("whole");
   };
 
@@ -263,29 +201,6 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   function keepSpot(next: readonly Page[]) {
     setIndex(pageAt(next, (page.y0 + page.y1) / 2));
   }
-
-  // Scrolling moves around the whole-board view, Ctrl+scrolling zooms it around the mouse.
-  const wheel = (e: WheelEvent) => {
-    if (overlay !== "whole") return;
-    setWholeMoved((moved) => {
-      const from = moved ?? wholeFit;
-      if (!e.ctrlKey) {
-        return { ...from, scrollX: from.scrollX - e.deltaX / from.zoom, scrollY: from.scrollY - e.deltaY / from.zoom };
-      }
-      const zoom = Math.max(wholeFit.zoom, Math.min(view.zoom * MAX_ZOOM, from.zoom * Math.exp(-e.deltaY / WHEEL_ZOOM_PX)));
-      return zoomAt(from, e.clientX, e.clientY, zoom);
-    });
-  };
-
-  // Zooms around the middle of the screen, starting from the live camera so a drag is kept.
-  const zoomBy = (factor: number) => {
-    if (!api) return;
-    const s = api.getAppState();
-    const from = { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY };
-    const zoom = Math.min(from.zoom * factor, view.zoom * MAX_ZOOM);
-    if (zoom <= view.zoom * 1.001) return setZoomed(null);
-    setZoomed({ page: current, camera: zoomAt(from, width / 2, (height + topSpace - barSpace) / 2, zoom) });
-  };
 
   const addText = (at: { x: number; y: number }, text: string) => {
     setAdditions((cur) => [...cur, { kind: "text", id: newId(), x: at.x, y: at.y, text, fontSize: textSizeFor(page) }]);
@@ -456,9 +371,9 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       onPrevious={() => go(current - 1)}
       onNext={() => go(current + 1)}
       onGrid={() => toggleOverlay("grid")}
-      onZoomIn={() => zoomBy(ZOOM_STEP)}
-      onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
-      onZoomReset={() => setZoomed(null)}
+      onZoomIn={zoomIn}
+      onZoomOut={zoomOut}
+      onZoomReset={resetZoom}
       onTool={chooseTool}
       onAddImage={() => imageInput.current?.click()}
       onFullscreen={toggleFullscreen}
@@ -579,7 +494,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           onCuts={changeCuts}
           onSave={saveCuts}
           onAutomatic={() => changeCuts(null)}
-          onShowAll={() => setWholeMoved(null)}
+          onShowAll={showAll}
           onPick={(i) => {
             go(i);
             setOverlay("none");
