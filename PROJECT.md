@@ -66,12 +66,14 @@ camera maths live in `domain/`, which has the tests.
 - Stays a viewer: the owner's big idea (the "gauntlet", a canvas of live
   widgets) is a separate project, and this app is one of its pieces. No
   Trello list or other apps inside boards (see `PLAN.md`)
-- Step-by-step reveals: built and taken out for now; kept on a branch
-- Revisit the lasso, which the owner finds weird in use
+- Split `Slideshow.tsx` by concern, behind end-to-end tests run locally
+  before every push
 
 ## Open problems
 
 - Workbooks: bold/italic text shows plain (the app lists what it draws
   differently on opening); charts and Excel-drawn shapes don't show, and
   aren't detected, because ExcelJS doesn't read them
-- The lasso feels off, and it isn't yet known why
+- The lasso tests each element's bounding box, not its shape, so circles,
+  diagonal lines and rotated shapes need a looser loop than expected. Not
+  being fixed: selecting is rarely used in a viewer

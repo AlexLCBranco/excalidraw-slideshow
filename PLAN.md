@@ -24,25 +24,23 @@ not host other apps or live widgets inside boards; that is the gauntlet's job.
 Ideas raised so far, not yet asked for. Don't start one without the owner
 asking.
 
-- Step-by-step reveals (select elements, "Add step"; → shows each step
-  before moving on, ← hides them). Built, tested and taken out for now: the
-  full version lives on the `reveal-steps` branch (commit 9d19e4e). To bring
-  it back, cherry-pick that commit onto `main`.
 - Selection ideas from research, not yet asked for: drag direction decides
   (left-to-right = fully inside, right-to-left = anything touched); scribble
   to select what a line crosses (tldraw's Alt+drag); select similar (same
   colour or kind); Esc during a drag keeps the previous selection; named
   bookmarks to jump back to a selection; swapping between overlapping
   versions of a drawing (shares code with reveals).
-- Revisit the lasso (Alt+drag). The owner finds it weird in use; find out
-  what feels off before changing it.
 
 ## Not being built
 
 - Other apps or live widgets inside boards (a Trello list, Boardkit). Trello
   was dropped: the owner only wanted a drag-and-drop list, which Boardkit
   already is. Live widgets belong to the gauntlet, not this viewer.
-
+- Step-by-step reveals (→ shows parts of a page one step at a time). The
+  owner wants the whole slide at once almost always; hiding sections is
+  something done while making a board, not while viewing it. The old
+  version stays on the `reveal-steps` branch (commit 9d19e4e) for reference
+  only: `Slideshow.tsx` has changed too much to cherry-pick it.
 - Editing workbooks, recalculating formulas, charts and shapes drawn in
   Excel (ExcelJS doesn't read them), bold and italic cell text (Excalidraw
   text has no bold). Workbooks are shown, never changed.
