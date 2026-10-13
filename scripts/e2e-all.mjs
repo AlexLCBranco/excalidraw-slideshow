@@ -8,7 +8,7 @@
 import { spawn, spawnSync } from "node:child_process";
 
 const BASE = "http://localhost:5181";
-const SCRIPTS = ["e2e-xlsx", "e2e-drop", "e2e-additions", "e2e-slide", "e2e-zoom"];
+const SCRIPTS = ["e2e-xlsx", "e2e-drop", "e2e-additions", "e2e-slide", "e2e-zoom", "e2e-pages"];
 
 // npm and npx run through a shell (on Windows they are .cmd files), as whole command lines.
 const build = spawnSync("npm run build", { stdio: "inherit", shell: true });
