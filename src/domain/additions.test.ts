@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { type Addition, isAdded, moveAddition, newId, placeImage, removeAddition, textSizeFor, validAdditions } from "./additions";
+import {
+  type Addition,
+  cornerScale,
+  isAdded,
+  moved,
+  newId,
+  placeImage,
+  removeAddition,
+  replaceAddition,
+  scaled,
+  textSizeFor,
+  validAdditions,
+} from "./additions";
 
 const page = { x0: 0, y0: 1000, x1: 2000, y1: 2000, name: "" };
 const text: Addition = { kind: "text", id: "added:a", x: 10, y: 20, text: "hi", fontSize: 35 };
@@ -27,8 +39,23 @@ describe("additions", () => {
   });
 
   it("moves and removes only the addition named", () => {
-    expect(moveAddition([text, image], "added:a", 5, -5)).toEqual([{ ...text, x: 15, y: 15 }, image]);
+    expect(replaceAddition([text, image], moved(text, 5, -5))).toEqual([{ ...text, x: 15, y: 15 }, image]);
     expect(removeAddition([text, image], "added:a")).toEqual([image]);
+  });
+
+  it("resizes from the top-left corner: text by its size, a picture keeping its shape", () => {
+    expect(scaled(text, 2)).toEqual({ ...text, fontSize: 70 });
+    expect(scaled({ ...image, width: 200, height: 100 }, 0.5)).toMatchObject({ x: 0, y: 0, width: 100, height: 50 });
+    // Never shrunk out of sight.
+    expect(scaled(text, 0)).toMatchObject({ fontSize: 4 });
+    expect(scaled({ ...image, width: 200, height: 100 }, 0)).toMatchObject({ width: 8, height: 4 });
+  });
+
+  it("measures a corner drag by whichever direction went further", () => {
+    const box = { x0: 100, y0: 100, x1: 300, y1: 200 };
+    expect(cornerScale(box, 500, 150)).toBe(2);
+    expect(cornerScale(box, 150, 300)).toBe(2);
+    expect(cornerScale(box, 0, 0)).toBe(0);
   });
 
   it("keeps only well-formed additions from storage", () => {

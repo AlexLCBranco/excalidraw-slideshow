@@ -44,8 +44,24 @@ export function placeImage(page: Page, width: number, height: number): Box {
   return { x0, y0, x1: x0 + w, y1: y0 + h };
 }
 
-export const moveAddition = (list: readonly Addition[], id: string, dx: number, dy: number): Addition[] =>
-  list.map((a) => (a.id === id ? { ...a, x: a.x + dx, y: a.y + dy } : a));
+/** Added text is never smaller than this, nor a picture's shorter side, in scene units. */
+const MIN_SIZE = 4;
+
+export const moved = (a: Addition, dx: number, dy: number): Addition => ({ ...a, x: a.x + dx, y: a.y + dy });
+
+/** Grows or shrinks an addition from its top-left corner: text by its size, a picture keeping its shape. */
+export function scaled(a: Addition, scale: number): Addition {
+  if (a.kind === "text") return { ...a, fontSize: Math.max(MIN_SIZE, a.fontSize * scale) };
+  const s = Math.max(scale, MIN_SIZE / Math.min(a.width, a.height));
+  return { ...a, width: a.width * s, height: a.height * s };
+}
+
+/** How much a corner dragged to (x, y) scales a box whose top-left stays put: the larger of the two directions. */
+export const cornerScale = (box: Box, x: number, y: number) =>
+  Math.max((x - box.x0) / (box.x1 - box.x0), (y - box.y0) / (box.y1 - box.y0), 0);
+
+export const replaceAddition = (list: readonly Addition[], next: Addition): Addition[] =>
+  list.map((a) => (a.id === next.id ? next : a));
 
 export const removeAddition = (list: readonly Addition[], id: string): Addition[] => list.filter((a) => a.id !== id);
 

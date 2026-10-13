@@ -230,7 +230,11 @@ moved or removed.
   which would put the picture into its scene itself.
 - **The mark.** `AddedLayer` draws a green dashed outline and an "Added"
   tag around every addition, so it never passes for the board's drawing.
-  Drag the tag to move it, × to remove it.
+  With the select tool, drag an addition (or, with any tool, its tag) to
+  move it; drag the corner handle to resize it from its top-left corner
+  (`scaled`: text by its size, a picture keeping its shape, never below
+  4 units). Every step of a drag is measured from where it started, so
+  nothing drifts. × removes it.
 
 Additions are plain data (`Addition`), with ids starting `added:`.
 `additionScene` turns them into Excalidraw elements (`convertToExcalidrawElements`)
@@ -352,6 +356,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.22** — Added text and pictures can be resized (corner handle) and
+  moved by dragging them, not only their tag.
 - **v0.0.21** — Add text and pictures on top of a board, marked "Added",
   saved in the browser only after "Save changes" and an "are you sure?".
 - **v0.0.20** — Drop files from Explorer anywhere: a "Drop to open" overlay,

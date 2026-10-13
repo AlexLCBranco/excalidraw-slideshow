@@ -3,7 +3,7 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type Addition, isAdded, moveAddition, newId, placeImage, removeAddition, textSizeFor } from "../../domain/additions";
+import { type Addition, isAdded, newId, placeImage, removeAddition, replaceAddition, textSizeFor } from "../../domain/additions";
 import { canCut, pagesFromCuts } from "../../domain/cuts";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
@@ -369,7 +369,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     setTemporary(null);
   };
 
-  // Pictures go in the middle of the page, shrunk to fit; drag their tag to move them.
+  // Pictures go in the middle of the page, shrunk to fit; drag one to move it, its corner to resize it.
   const addImages = async (files: readonly File[]) => {
     for (const file of files.filter((f) => f.type.startsWith("image/"))) {
       try {
@@ -559,9 +559,11 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       )}
       {ready && overlay !== "whole" && added.elements.length > 0 && (
         <AddedLayer
+          additions={additions}
           elements={added.elements}
           camera={camera ?? view}
-          onMove={(id, dx, dy) => setAdditions((cur) => moveAddition(cur, id, dx, dy))}
+          grab={tool === "select"}
+          onChange={(next) => setAdditions((cur) => replaceAddition(cur, next))}
           onRemove={removeAdded}
         />
       )}

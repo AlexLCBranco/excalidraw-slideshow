@@ -50,3 +50,25 @@
 .remove:hover {
   background: var(--surface-raised);
 }
+
+/* With the select tool, an addition can be grabbed by any part to move it. */
+.outline[data-grab="true"] {
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+/* Bottom-right corner: drag to resize, keeping a picture's shape. */
+.handle {
+  position: absolute;
+  right: calc(-1 * var(--space-1) - var(--handle-size) / 2);
+  bottom: calc(-1 * var(--space-1) - var(--handle-size) / 2);
+  width: var(--handle-size);
+  height: var(--handle-size);
+  border: var(--added-width) solid var(--added-text);
+  border-radius: var(--radius-sm);
+  background: var(--added);
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+}

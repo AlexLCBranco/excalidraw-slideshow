@@ -107,6 +107,35 @@ await page.mouse.up();
 const after = await page.locator('[data-testid="added"]').first().boundingBox();
 check(Math.abs(after.x - before.x - 100) < 3 && Math.abs(after.y - before.y - 50) < 3, "dragging the “Added” tag moves it");
 
+// Dragging the picture itself moves it too (select tool). Both pictures start in the middle; the pasted one is on top.
+const pic = page.locator('[data-testid="added"]').nth(2);
+const p0 = await pic.boundingBox();
+await page.mouse.move(p0.x + p0.width / 2, p0.y + p0.height / 2);
+await page.mouse.down();
+await page.mouse.move(p0.x + p0.width / 2 + 250, p0.y + p0.height / 2 + 40, { steps: 5 });
+await page.mouse.up();
+const p1 = await pic.boundingBox();
+check(Math.abs(p1.x - p0.x - 250) < 3 && Math.abs(p1.y - p0.y - 40) < 3, "dragging a picture by its middle moves it");
+
+// The corner handle resizes: a picture keeps its shape, text grows.
+const drag = async (box, dx, dy) => {
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 5 });
+  await page.mouse.up();
+};
+await drag(await pic.getByTestId("resize").boundingBox(), p1.width, p1.height / 4);
+const p2 = await pic.boundingBox();
+const ratio = (b) => b.width / b.height;
+check(p2.width > p1.width * 1.7 && Math.abs(ratio(p2) - ratio(p1)) < 0.1, `the corner handle makes a picture bigger, same shape (${Math.round(p1.width)} → ${Math.round(p2.width)} px wide)`);
+await drag(await pic.getByTestId("resize").boundingBox(), -p2.width * 0.6, -p2.height * 0.6);
+check((await pic.boundingBox()).width < p2.width * 0.6, "and smaller again");
+const txt = page.locator('[data-testid="added"]').first();
+const t0 = await txt.boundingBox();
+await drag(await txt.getByTestId("resize").boundingBox(), t0.width, 0);
+const t1 = await txt.boundingBox();
+check(t1.height > t0.height * 1.5, `the corner handle makes text bigger (${Math.round(t0.height)} → ${Math.round(t1.height)} px tall)`);
+
 // Remove asks first; Cancel keeps it.
 await page.locator('[data-testid="added"]').nth(2).getByRole("button", { name: "Remove" }).click();
 check(await dialog.getByText("Remove this added picture?").isVisible(), "× asks “Remove this added picture?”");

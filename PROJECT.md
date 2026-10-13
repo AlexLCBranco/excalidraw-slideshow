@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.21_
+_Last updated: 2026-10-13, v0.0.22_
 
 ## What it is
 
@@ -48,7 +48,7 @@ camera maths live in `domain/`, which has the tests.
   then Copy (pastes into excalidraw.com), Copy image, Copy text, and an
   opacity slider that only lasts while the board is open
 - Add text (T) and pictures (I, or paste) on top of a board, each marked
-  "Added" (drag the tag to move, × to remove); kept only after "Save
+  "Added" (drag to move, corner handle to resize, × to remove); kept only after "Save
   changes", in this browser; every save, discard, removal and leaving with
   unsaved changes asks "are you sure?" first. The board's own drawing can't
   be deleted
