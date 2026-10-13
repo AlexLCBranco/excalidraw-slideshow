@@ -8,11 +8,9 @@ import { canCut, pagesFromCuts } from "../../domain/cuts";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
-import { clipboardText, selectionText } from "../../domain/selection";
 import { tabOf } from "../../domain/sheetPages";
 import type { SceneElement } from "../../domain/types";
 import { additionScene, readImage } from "../../lib/additions";
-import { renderPicture } from "../../lib/render";
 import {
   loadAdditions,
   loadBarPinned,
@@ -36,7 +34,8 @@ import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { NoteLayer } from "./NoteLayer";
 import { PageGrid } from "./PageGrid";
-import { type SelectionAction, SelectionLayer } from "./SelectionLayer";
+import { selectionActions } from "./selectionActions";
+import { SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
 import { TextLayer } from "./TextLayer";
@@ -267,46 +266,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     setSelection(null);
   };
 
-  // What can be done with selected elements. The board itself is never changed.
-  const selectionActions: SelectionAction[] = [
-    {
-      label: "Copy",
-      shortcut: "Ctrl+C",
-      run: (els) =>
-        navigator.clipboard.writeText(clipboardText(els, shown.files)).then(
-          () => showToast(`Copied ${els.length} · paste into Excalidraw`),
-          () => showToast("The browser didn't allow copying"),
-        ),
-    },
-    {
-      label: "Copy image",
-      // As seen on screen, opacity changes included. The picture is handed over while it's
-      // still being drawn, so the browser counts the copy as coming from the click.
-      run: (els) =>
-        navigator.clipboard
-          .write([new ClipboardItem({ "image/png": renderPicture(withOpacities(els, opacities), shown) })])
-          .then(
-            () => showToast("Copied as an image · paste it anywhere"),
-            () => showToast("The browser didn't allow copying"),
-          ),
-    },
-    {
-      label: "Copy text",
-      run: (els) => {
-        const text = selectionText(els);
-        if (!text) return showToast("No writing in the selection");
-        navigator.clipboard.writeText(text).then(
-          () => showToast("Copied the text"),
-          () => showToast("The browser didn't allow copying"),
-        );
-      },
-    },
-    {
-      label: "Reset",
-      // Selected elements come from the board, so they carry its own opacities.
-      run: (els) => setOpacities((o) => ({ ...o, ...Object.fromEntries(els.map((e) => [e.id, e.opacity ?? 100])) })),
-    },
-  ];
+  const actions = selectionActions({ shown, opacities, setOpacities, showToast });
 
   const go = (i: number) => setIndex(Math.max(0, Math.min(pages.length - 1, i)));
   const toggleOverlay = (o: Overlay) => setOverlay((cur) => (cur === o ? "none" : o));
@@ -580,7 +540,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           camera={camera ?? view}
           selected={selected}
           onSelect={(elements) => setSelection({ page: current, elements })}
-          actions={selectionActions}
+          actions={actions}
           page={page}
           opacity={selected.length ? opacityOf(selected[0], opacities) : 100}
           onOpacity={(value) =>
