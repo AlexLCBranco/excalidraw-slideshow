@@ -3,20 +3,17 @@ import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type Addition, isAdded, newId, placeImage, removeAddition, replaceAddition, textSizeFor } from "../../domain/additions";
+import { isAdded, textSizeFor } from "../../domain/additions";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { pageAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { tabOf } from "../../domain/sheetPages";
 import type { Page, SceneElement } from "../../domain/types";
-import { additionScene, readImage } from "../../lib/additions";
 import {
-  loadAdditions,
   loadBarPinned,
   loadLastPage,
   loadMouseMode,
   type MouseMode,
-  saveAdditions,
   saveBarPinned,
   saveLastPage,
   saveMouseMode,
@@ -35,12 +32,13 @@ import { SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
 import { TextLayer } from "./TextLayer";
+import { useAdditions } from "./useAdditions";
 import { useCamera } from "./useCamera";
 import { useFullscreen } from "./useFullscreen";
 import { usePages } from "./usePages";
 import { usePageThumbnails } from "./usePageThumbnails";
 import { usePointerActivity } from "./usePointerActivity";
-import { isTyping, useSlideKeys } from "./useSlideKeys";
+import { useSlideKeys } from "./useSlideKeys";
 import { useToast } from "./useToast";
 
 interface Props {
@@ -87,39 +85,14 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [fullscreen, toggleFullscreen] = useFullscreen();
   const pointer = usePointerActivity();
 
-  // Text and pictures added on top of the board. Like every change made while viewing, they
-  // last until the board is closed unless saved, and then only in this browser: the file is never changed.
-  const [additions, setAdditions] = useState<Addition[]>([]);
-  const [savedAdditions, setSavedAdditions] = useState<Addition[]>(additions);
-  const unsaved = additions !== savedAdditions;
-  useEffect(() => {
-    let cancelled = false;
-    void loadAdditions(board.name).then((saved) => {
-      if (cancelled) return;
-      // Anything added while they were loading is kept, on top of the saved ones.
-      setAdditions((cur) => (cur.length ? [...saved, ...cur] : saved));
-      setSavedAdditions(saved);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [board.name]);
-  const added = useMemo(() => additionScene(additions), [additions]);
-  // The board as shown: its own drawing with the additions on top, for selecting, copying and the page grid.
-  const shown = useMemo<Board>(
-    () =>
-      additions.length
-        ? { ...board, elements: [...board.elements, ...added.elements], files: { ...board.files, ...added.files } }
-        : board,
-    [board, added, additions.length],
-  );
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const thumbnails = usePageThumbnails(shown, pages, overlay === "grid");
-
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
+  const { additions, added, shown, unsaved, addText, addImages, change, remove, askSave, askDiscard, guardLeave } =
+    useAdditions(board, page, showToast, setConfirm);
+  const thumbnails = usePageThumbnails(shown, pages, overlay === "grid");
   const { view, camera, whole, liveCamera, topSpace, barSpace, zoomIn, zoomOut, resetZoom, holdDrag, wholeAround, showAll, wheel } =
     useCamera({ api, ready, board, pages, current, wholeOpen: overlay === "whole", barPinned });
 
@@ -202,102 +175,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     setIndex(pageAt(next, (page.y0 + page.y1) / 2));
   }
 
-  const addText = (at: { x: number; y: number }, text: string) => {
-    setAdditions((cur) => [...cur, { kind: "text", id: newId(), x: at.x, y: at.y, text, fontSize: textSizeFor(page) }]);
-    setTemporary(null);
-  };
-
-  // Pictures go in the middle of the page, shrunk to fit; drag one to move it, its corner to resize it.
-  const addImages = async (files: readonly File[]) => {
-    for (const file of files.filter((f) => f.type.startsWith("image/"))) {
-      try {
-        const { dataURL, mimeType, width, height } = await readImage(file);
-        const box = placeImage(page, width, height);
-        const image: Addition = {
-          kind: "image",
-          id: newId(),
-          x: box.x0,
-          y: box.y0,
-          width: box.x1 - box.x0,
-          height: box.y1 - box.y0,
-          dataURL,
-          mimeType,
-        };
-        setAdditions((cur) => [...cur, image]);
-      } catch {
-        showToast(`Couldn't read ${file.name} as a picture`);
-      }
-    }
-  };
-
-  // A picture pasted with Ctrl+V is added too. Nothing pasted reaches Excalidraw, which would put it in the board.
-  const latestAddImages = useRef(addImages);
-  useEffect(() => {
-    latestAddImages.current = addImages;
-  });
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      if (isTyping(e.target)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const files = [...(e.clipboardData?.files ?? [])];
-      if (files.some((f) => f.type.startsWith("image/"))) void latestAddImages.current(files);
-    };
-    window.addEventListener("paste", onPaste, true);
-    return () => window.removeEventListener("paste", onPaste, true);
-  }, []);
-
-  const removeAdded = (id: string) =>
-    setConfirm({
-      question: `Remove this added ${additions.find((a) => a.id === id)?.kind === "image" ? "picture" : "text"}?`,
-      detail: savedAdditions.some((a) => a.id === id) ? "It stays saved until you press Save changes." : undefined,
-      choices: [{ label: "Remove", danger: true, run: () => setAdditions((cur) => removeAddition(cur, id)) }],
-    });
-
-  /** Stores the additions in this browser. Resolves to whether that worked. */
-  const persist = async () => {
-    const ok = await saveAdditions(board.name, additions);
-    if (ok) setSavedAdditions(additions);
-    showToast(ok ? "Saved in this browser · the board file is unchanged" : "Couldn't save: the browser's storage is unavailable or full");
-    return ok;
-  };
-
-  const askSave = () =>
-    setConfirm({
-      question: "Save your changes?",
-      detail: "What you added will show every time you open this board in this browser. The board file itself is never changed.",
-      choices: [{ label: "Save changes", run: () => void persist() }],
-    });
-
-  const askDiscard = () =>
-    setConfirm({
-      question: "Discard your changes?",
-      detail: "Everything added or removed since the last save is undone.",
-      choices: [{ label: "Discard", danger: true, run: () => setAdditions(savedAdditions) }],
-    });
-
-  /** Leaving the board with unsaved additions asks first. */
-  const guardLeave = (go: () => void) => () => {
-    if (!unsaved) return go();
-    setConfirm({
-      question: "Save your changes before leaving?",
-      detail: "Unsaved additions are lost when you leave the board.",
-      choices: [
-        { label: "Don't save", danger: true, run: go },
-        { label: "Save changes", run: () => void persist().then((ok) => ok && go()) },
-      ],
-    });
-  };
   const close = guardLeave(onClose);
   const openAnother = guardLeave(onOpenAnother);
-
-  // Closing the tab or window with unsaved additions gets the browser's own "Leave site?".
-  useEffect(() => {
-    if (!unsaved) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [unsaved]);
 
   useSlideKeys(ready && !confirm, {
     next: () => go(current + 1),
@@ -422,7 +301,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           key={current}
           camera={camera ?? view}
           fontSize={textSizeFor(page)}
-          onAdd={addText}
+          onAdd={(at, text) => {
+            addText(at, text);
+            setTemporary(null);
+          }}
           onCancel={() => setTemporary(null)}
         />
       )}
@@ -432,8 +314,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           elements={added.elements}
           camera={camera ?? view}
           grab={tool === "select"}
-          onChange={(next) => setAdditions((cur) => replaceAddition(cur, next))}
-          onRemove={removeAdded}
+          onChange={change}
+          onRemove={remove}
         />
       )}
       {ready && overlay === "none" && pageNotes.length > 0 && <NoteLayer notes={pageNotes} camera={liveCamera} />}
