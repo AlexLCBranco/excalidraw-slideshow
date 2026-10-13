@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.20_
+_Last updated: 2026-10-13, v0.0.21_
 
 ## What it is
 
@@ -8,8 +8,9 @@ A web app that presents any `.excalidraw` board (or `.xlsx` Excel
 workbook) as a slideshow: open a board, and ← / → move page to page, each
 page fitted to the screen. Made because the owner draws long boards on excalidraw.com (pages stacked
 top to bottom, 7–35 MB, lots of images) and the Obsidian Excalidraw plugin
-can't cope with them. It only presents: editing stays on excalidraw.com, and
-the app never changes a board file. Boards never leave the owner's PC; the
+can't cope with them. It presents, and lets the owner add text and pictures
+on top (marked "Added", kept in the browser); real editing stays on
+excalidraw.com, and the app never changes a board file. Boards never leave the owner's PC; the
 browser reads them from folders the owner connects. Built by the owner, who
 is learning frontend, with Claude Code. Repo:
 github.com/AlexLCBranco/excalidraw-slideshow; every push to main deploys to
@@ -46,6 +47,11 @@ camera maths live in `domain/`, which has the tests.
 - Select with a box, lasso (Alt+drag), Shift to add, Ctrl+A for the page;
   then Copy (pastes into excalidraw.com), Copy image, Copy text, and an
   opacity slider that only lasts while the board is open
+- Add text (T) and pictures (I, or paste) on top of a board, each marked
+  "Added" (drag the tag to move, × to remove); kept only after "Save
+  changes", in this browser; every save, discard, removal and leaving with
+  unsaved changes asks "are you sure?" first. The board's own drawing can't
+  be deleted
 - Remembers the last page per board; every page has its own address
 - Installable app that opens `.excalidraw` files directly, works offline,
   and updates itself only while the library is showing

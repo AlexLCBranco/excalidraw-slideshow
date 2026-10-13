@@ -1,8 +1,9 @@
 import { CaptureUpdateAction, Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI, NormalizedZoomValue } from "@excalidraw/excalidraw/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { type Addition, isAdded, moveAddition, newId, placeImage, removeAddition, textSizeFor } from "../../domain/additions";
 import { canCut, pagesFromCuts } from "../../domain/cuts";
 import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
@@ -10,20 +11,25 @@ import type { Board } from "../../domain/scene";
 import { clipboardText, selectionText } from "../../domain/selection";
 import { tabOf } from "../../domain/sheetPages";
 import type { SceneElement } from "../../domain/types";
+import { additionScene, readImage } from "../../lib/additions";
 import { renderPicture } from "../../lib/render";
 import {
+  loadAdditions,
   loadBarPinned,
   loadCuts,
   loadLastPage,
   loadMouseMode,
   loadPageHeight,
   type MouseMode,
+  saveAdditions,
   saveBarPinned,
   saveCuts,
   saveLastPage,
   saveMouseMode,
   savePageHeight,
 } from "../../lib/storage";
+import { AddedLayer } from "./AddedLayer";
+import { type Confirm, ConfirmDialog } from "./ConfirmDialog";
 import { ControlBar } from "./ControlBar";
 import { CutOverview, type CutState } from "./CutOverview";
 import { HelpOverlay } from "./HelpOverlay";
@@ -33,10 +39,11 @@ import { PageGrid } from "./PageGrid";
 import { type SelectionAction, SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
+import { TextLayer } from "./TextLayer";
 import { useFullscreen } from "./useFullscreen";
 import { usePageThumbnails } from "./usePageThumbnails";
 import { usePointerActivity } from "./usePointerActivity";
-import { useSlideKeys } from "./useSlideKeys";
+import { isTyping, useSlideKeys } from "./useSlideKeys";
 import { useToast } from "./useToast";
 import { useViewportSize } from "./useViewportSize";
 
@@ -63,8 +70,9 @@ const WHEEL_ZOOM_PX = 300;
 const NOT_SHOWN_MS = 8000;
 
 type Overlay = "none" | "grid" | "help" | "whole";
-/** What the mouse does on the page: the remembered mode, or the laser for a while. */
-export type Tool = MouseMode | "laser";
+/** What the mouse does on the page: the remembered mode, or the laser or text tool for a while. */
+type Temporary = "laser" | "text";
+export type Tool = MouseMode | Temporary;
 
 const toAppState = (c: Camera) => ({
   zoom: { value: c.zoom as NormalizedZoomValue },
@@ -104,8 +112,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [index, setIndex] = useState(() => Math.min(initialPage ?? resumedAt, pages.length - 1));
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [mouseMode, setMouseMode] = useState(loadMouseMode);
-  const [laser, setLaser] = useState(false);
-  const tool: Tool = laser ? "laser" : mouseMode;
+  const [temporary, setTemporary] = useState<Temporary | null>(null);
+  const tool: Tool = temporary ?? mouseMode;
   const [typed, setTyped] = useState("");
   const [barHovered, setBarHovered] = useState(false);
   const [barPinned, setBarPinned] = useState(loadBarPinned);
@@ -113,7 +121,37 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const [toast, showToast] = useToast();
   const [fullscreen, toggleFullscreen] = useFullscreen();
   const pointer = usePointerActivity();
-  const thumbnails = usePageThumbnails(board, pages, overlay === "grid");
+
+  // Text and pictures added on top of the board. Like every change made while viewing, they
+  // last until the board is closed unless saved, and then only in this browser: the file is never changed.
+  const [additions, setAdditions] = useState<Addition[]>([]);
+  const [savedAdditions, setSavedAdditions] = useState<Addition[]>(additions);
+  const unsaved = additions !== savedAdditions;
+  useEffect(() => {
+    let cancelled = false;
+    void loadAdditions(board.name).then((saved) => {
+      if (cancelled) return;
+      // Anything added while they were loading is kept, on top of the saved ones.
+      setAdditions((cur) => (cur.length ? [...saved, ...cur] : saved));
+      setSavedAdditions(saved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [board.name]);
+  const added = useMemo(() => additionScene(additions), [additions]);
+  // The board as shown: its own drawing with the additions on top, for selecting, copying and the page grid.
+  const shown = useMemo<Board>(
+    () =>
+      additions.length
+        ? { ...board, elements: [...board.elements, ...added.elements], files: { ...board.files, ...added.files } }
+        : board,
+    [board, added, additions.length],
+  );
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
+
+  const thumbnails = usePageThumbnails(shown, pages, overlay === "grid");
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
@@ -149,14 +187,17 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   // Opacity changes are only a view: Excalidraw redraws with them, but they last until the
   // board is closed and never reach the file. Copy and the page grid still see the originals.
+  // Additions are drawn the same way, swapped into Excalidraw's scene on top of the board's own elements.
   const [opacities, setOpacities] = useState<Opacities>({});
   useEffect(() => {
-    if (!api || !ready || !Object.keys(opacities).length) return;
+    if (!api || !ready) return;
+    api.addFiles(Object.values(added.files));
+    const own = api.getSceneElementsIncludingDeleted().filter((e) => !isAdded(e.id));
     api.updateScene({
-      elements: withOpacities(api.getSceneElementsIncludingDeleted(), opacities),
+      elements: withOpacities([...own, ...(added.elements as unknown as typeof own)], opacities),
       captureUpdate: CaptureUpdateAction.NEVER,
     });
-  }, [api, ready, opacities]);
+  }, [api, ready, opacities, added]);
 
   // In view mode Excalidraw pans on every drag, so the page is re-fitted whenever the mouse is released.
   const [releases, setReleases] = useState(0);
@@ -207,10 +248,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       const s = api.getAppState();
       setZoomed({ page: current, camera: { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY } });
     }
-    if (t === "laser") {
-      setLaser((on) => !on);
+    if (t === "laser" || t === "text") {
+      setTemporary((on) => (on === t ? null : t));
     } else {
-      setLaser(false);
+      setTemporary(null);
       setMouseMode(t);
       saveMouseMode(t);
     }
@@ -223,7 +264,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       label: "Copy",
       shortcut: "Ctrl+C",
       run: (els) =>
-        navigator.clipboard.writeText(clipboardText(els, board.files)).then(
+        navigator.clipboard.writeText(clipboardText(els, shown.files)).then(
           () => showToast(`Copied ${els.length} · paste into Excalidraw`),
           () => showToast("The browser didn't allow copying"),
         ),
@@ -234,7 +275,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       // still being drawn, so the browser counts the copy as coming from the click.
       run: (els) =>
         navigator.clipboard
-          .write([new ClipboardItem({ "image/png": renderPicture(withOpacities(els, opacities), board) })])
+          .write([new ClipboardItem({ "image/png": renderPicture(withOpacities(els, opacities), shown) })])
           .then(
             () => showToast("Copied as an image · paste it anywhere"),
             () => showToast("The browser didn't allow copying"),
@@ -323,7 +364,104 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     setZoomed({ page: current, camera: zoomAt(from, width / 2, (height - barSpace) / 2, zoom) });
   };
 
-  useSlideKeys(ready, {
+  const addText = (at: { x: number; y: number }, text: string) => {
+    setAdditions((cur) => [...cur, { kind: "text", id: newId(), x: at.x, y: at.y, text, fontSize: textSizeFor(page) }]);
+    setTemporary(null);
+  };
+
+  // Pictures go in the middle of the page, shrunk to fit; drag their tag to move them.
+  const addImages = async (files: readonly File[]) => {
+    for (const file of files.filter((f) => f.type.startsWith("image/"))) {
+      try {
+        const { dataURL, mimeType, width, height } = await readImage(file);
+        const box = placeImage(page, width, height);
+        const image: Addition = {
+          kind: "image",
+          id: newId(),
+          x: box.x0,
+          y: box.y0,
+          width: box.x1 - box.x0,
+          height: box.y1 - box.y0,
+          dataURL,
+          mimeType,
+        };
+        setAdditions((cur) => [...cur, image]);
+      } catch {
+        showToast(`Couldn't read ${file.name} as a picture`);
+      }
+    }
+  };
+
+  // A picture pasted with Ctrl+V is added too. Nothing pasted reaches Excalidraw, which would put it in the board.
+  const latestAddImages = useRef(addImages);
+  useEffect(() => {
+    latestAddImages.current = addImages;
+  });
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (isTyping(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const files = [...(e.clipboardData?.files ?? [])];
+      if (files.some((f) => f.type.startsWith("image/"))) void latestAddImages.current(files);
+    };
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+  }, []);
+
+  const removeAdded = (id: string) =>
+    setConfirm({
+      question: `Remove this added ${additions.find((a) => a.id === id)?.kind === "image" ? "picture" : "text"}?`,
+      detail: savedAdditions.some((a) => a.id === id) ? "It stays saved until you press Save changes." : undefined,
+      choices: [{ label: "Remove", danger: true, run: () => setAdditions((cur) => removeAddition(cur, id)) }],
+    });
+
+  /** Stores the additions in this browser. Resolves to whether that worked. */
+  const persist = async () => {
+    const ok = await saveAdditions(board.name, additions);
+    if (ok) setSavedAdditions(additions);
+    showToast(ok ? "Saved in this browser · the board file is unchanged" : "Couldn't save: the browser's storage is unavailable or full");
+    return ok;
+  };
+
+  const askSave = () =>
+    setConfirm({
+      question: "Save your changes?",
+      detail: "What you added will show every time you open this board in this browser. The board file itself is never changed.",
+      choices: [{ label: "Save changes", run: () => void persist() }],
+    });
+
+  const askDiscard = () =>
+    setConfirm({
+      question: "Discard your changes?",
+      detail: "Everything added or removed since the last save is undone.",
+      choices: [{ label: "Discard", danger: true, run: () => setAdditions(savedAdditions) }],
+    });
+
+  /** Leaving the board with unsaved additions asks first. */
+  const guardLeave = (go: () => void) => () => {
+    if (!unsaved) return go();
+    setConfirm({
+      question: "Save your changes before leaving?",
+      detail: "Unsaved additions are lost when you leave the board.",
+      choices: [
+        { label: "Don't save", danger: true, run: go },
+        { label: "Save changes", run: () => void persist().then((ok) => ok && go()) },
+      ],
+    });
+  };
+  const close = guardLeave(onClose);
+  const openAnother = guardLeave(onOpenAnother);
+
+  // Closing the tab or window with unsaved additions gets the browser's own "Leave site?".
+  useEffect(() => {
+    if (!unsaved) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [unsaved]);
+
+  useSlideKeys(ready && !confirm, {
     next: () => go(current + 1),
     previous: () => go(current - 1),
     first: () => go(0),
@@ -341,21 +479,23 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         return !pinned;
       }),
     laser: () => chooseTool("laser"),
+    text: () => chooseTool("text"),
+    image: () => imageInput.current?.click(),
     mouseMode: () => chooseTool(tool === "select" ? "hand" : "select"),
-    open: onOpenAnother,
+    open: openAnother,
     digit: (d) => setTyped((t) => (t + d).slice(-4)),
     enter: () => {
       if (typed) go(Number(typed) - 1);
       setTyped("");
       setOverlay("none");
     },
-    // Esc backs out one step at a time: typed number, overlay, selection, laser, then the board.
+    // Esc backs out one step at a time: typed number, overlay, selection, laser or text tool, then the board.
     close: () => {
       if (typed) setTyped("");
       else if (overlay !== "none") setOverlay("none");
       else if (selected.length) setSelection(null);
-      else if (laser) setLaser(false);
-      else onClose();
+      else if (temporary) setTemporary(null);
+      else close();
     },
   });
 
@@ -377,7 +517,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     (barPinned || overlay !== "none" || barHovered || (pointer.moving && (tool !== "laser" || pointer.nearBottom)));
 
   return (
-    <div className={styles.stage} data-cursor-hidden={ready && !pointer.moving && !laser}>
+    <div className={styles.stage} data-cursor-hidden={ready && !pointer.moving && !temporary && !confirm}>
       <Excalidraw
         excalidrawAPI={setApi}
         initialData={initialData}
@@ -396,7 +536,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       {tool === "laser" && overlay !== "whole" && <LaserPointer />}
       {tool === "select" && ready && overlay !== "whole" && (
         <SelectionLayer
-          elements={board.elements}
+          elements={shown.elements}
           camera={camera ?? view}
           selected={selected}
           onSelect={(elements) => setSelection({ page: current, elements })}
@@ -406,6 +546,23 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           onOpacity={(value) =>
             setOpacities((o) => ({ ...o, ...Object.fromEntries(selected.map((e) => [e.id, value])) }))
           }
+        />
+      )}
+      {tool === "text" && ready && overlay !== "whole" && (
+        <TextLayer
+          key={current}
+          camera={camera ?? view}
+          fontSize={textSizeFor(page)}
+          onAdd={addText}
+          onCancel={() => setTemporary(null)}
+        />
+      )}
+      {ready && overlay !== "whole" && added.elements.length > 0 && (
+        <AddedLayer
+          elements={added.elements}
+          camera={camera ?? view}
+          onMove={(id, dx, dy) => setAdditions((cur) => moveAddition(cur, id, dx, dy))}
+          onRemove={removeAdded}
         />
       )}
       {ready && overlay === "none" && pageNotes.length > 0 && <NoteLayer notes={pageNotes} camera={liveCamera} />}
@@ -435,7 +592,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
             tool={tool}
             gridOpen={overlay === "grid"}
             zoom={camera ? camera.zoom / view.zoom : 1}
-            onBack={onClose}
+            onBack={close}
             onPrevious={() => go(current - 1)}
             onNext={() => go(current + 1)}
             onGrid={() => toggleOverlay("grid")}
@@ -443,6 +600,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
             onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
             onZoomReset={() => setZoomed(null)}
             onTool={chooseTool}
+            onAddImage={() => imageInput.current?.click()}
             onFullscreen={toggleFullscreen}
             onHelp={() => toggleOverlay("help")}
             onHover={setBarHovered}
@@ -481,6 +639,30 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
         />
       )}
       {overlay === "help" && <HelpOverlay onClose={() => setOverlay("none")} />}
+
+      {ready && unsaved && overlay !== "whole" && (
+        <div className={styles.saveBar} onMouseDown={(e) => e.preventDefault()} role="status">
+          <span className={styles.saveStatus}>Unsaved changes</span>
+          <button className={styles.saveButton} onClick={askDiscard}>
+            Discard
+          </button>
+          <button className={styles.saveButton} data-primary onClick={askSave}>
+            Save changes
+          </button>
+        </div>
+      )}
+      <input
+        ref={imageInput}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          void addImages([...(e.target.files ?? [])]);
+          e.target.value = "";
+        }}
+      />
+      {confirm && <ConfirmDialog confirm={confirm} onDone={() => setConfirm(null)} />}
 
       {typed && <div className={styles.typed}>Go to page {typed} ↵</div>}
       <div className={styles.toast} data-visible={toast !== null}>

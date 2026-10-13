@@ -20,6 +20,9 @@
   --laser: #ff3b30;
   --warning: #f0b429;
   --warning-bg: rgb(240 180 41 / 0.1);
+  /* Text and pictures added in the app, marked so they never pass for the board's own drawing. */
+  --added: #4cc38a;
+  --added-text: #0b2418;
 
   /* ---- Spacing scale (4px base) ---- */
   --space-1: 4px;
@@ -57,6 +60,9 @@
   /* Page cuts in the whole-board view: the line, and the strip around it that can be grabbed. */
   --cut-width: 2px;
   --cut-hit: 14px;
+  --added-width: 2px;
+  --dialog-width: 420px;
+  --text-box-min: 160px;
 
   /* ---- Radii ---- */
   --radius-sm: 4px;
@@ -87,6 +93,7 @@
   --z-overlay: 5;
   --z-laser: 8;
   --z-select: 8;
+  --z-added: 9;
   --z-hud: 10;
   --z-modal: 20;
   --z-bar: 30;

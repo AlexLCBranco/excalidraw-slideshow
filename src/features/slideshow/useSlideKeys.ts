@@ -14,6 +14,10 @@ interface Actions {
   /** Hide or show the control bar. */
   bar: () => void;
   laser: () => void;
+  /** Click on the page to type text there. */
+  text: () => void;
+  /** Pick a picture to put on the page. */
+  image: () => void;
   /** Switch between the select and hand modes. */
   mouseMode: () => void;
   help: () => void;
@@ -36,12 +40,18 @@ const KEYS: Record<string, keyof Actions> = {
   f: "fullscreen", F: "fullscreen",
   h: "bar", H: "bar",
   k: "laser", K: "laser",
+  t: "text", T: "text",
+  i: "image", I: "image",
   v: "mouseMode", V: "mouseMode",
   "?": "help",
   o: "open", O: "open",
   Escape: "close",
   Enter: "enter",
 };
+
+/** Whether a key went to a text field, where it's typing rather than a shortcut. */
+export const isTyping = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || target.tagName === "TEXTAREA" || target.tagName === "INPUT");
 
 /**
  * Keyboard and mouse-wheel control for the slideshow. Listens in the capture
@@ -60,6 +70,8 @@ export function useSlideKeys(enabled: boolean, actions: Actions) {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // Typing added text: every key is the text's, Esc and Enter included.
+      if (isTyping(e.target)) return;
       const isDigit = e.key >= "0" && e.key <= "9" && e.key.length === 1;
       const action = isDigit ? "digit" : KEYS[e.key];
       if (!action) return;

@@ -7,6 +7,7 @@ const TOOLS: [Tool, string][] = [
   ["hand", "Hand: drag to move around a zoomed page (V)"],
   ["select", "Select: drag a box over elements (V)"],
   ["laser", "Laser pointer (K)"],
+  ["text", "Add text: click on the page and type (T)"],
 ];
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
   onZoomOut: () => void;
   onZoomReset: () => void;
   onTool: (tool: Tool) => void;
+  onAddImage: () => void;
   onFullscreen: () => void;
   onHelp: () => void;
   onHover: (hovering: boolean) => void;
@@ -63,6 +65,7 @@ export function ControlBar(p: Props) {
       {TOOLS.map(([tool, label]) => (
         <Button key={tool} icon={tool} label={label} onClick={() => p.onTool(tool)} active={p.tool === tool} />
       ))}
+      <Button icon="image" label="Add a picture (I, or paste one)" onClick={p.onAddImage} />
       <span className={styles.divider} />
       <Button
         icon={p.fullscreen ? "exitFullscreen" : "fullscreen"}

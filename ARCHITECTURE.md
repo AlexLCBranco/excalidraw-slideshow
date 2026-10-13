@@ -167,7 +167,7 @@ in only while the mouse moves. A progress line along the bottom edge is
 always visible, and a corner counter shows whenever the bar is hidden. The
 cursor hides after 2.5 s without moving. `useSlideKeys` is the one keyboard entry point;
 Esc backs out one step at a time (typed page number, overlay, selection,
-laser, then the board).
+laser or text tool, then the board; leaving with unsaved additions asks first).
 
 - **Page grid (G).** Thumbnails come from Excalidraw's `exportToCanvas`,
   which crops exactly to a frame when given `exportingFrame`. Every page is
@@ -212,6 +212,41 @@ laser, then the board).
   selection back to its own opacity. Every change made while viewing follows
   this pattern: state in `Slideshow`, applied on screen only, gone on close.
 - **Resume.** The last page shown is saved per board and restored on open.
+
+## Adding text and pictures (`domain/additions.ts`, `lib/additions.ts`)
+
+The one kind of editing: text and pictures added on top of a board. The
+board's own elements can never be removed or changed; only additions can be
+moved or removed.
+
+- **Text (T, or the T button).** `TextLayer` covers the page; a click opens
+  a text box there, Enter adds it (Shift+Enter for a new line), Esc lets it
+  go. The text is sized to the page (`textSizeFor`), so it reads the same on
+  any board. While typing, `useSlideKeys` ignores every key (`isTyping`), so
+  letters aren't shortcuts.
+- **Pictures (I, the picture button, or Ctrl+V).** Read as a data: URL
+  (`readImage`), centred on the page and shrunk to fit (`placeImage`). Paste
+  is caught on `window` in the capture phase and never reaches Excalidraw,
+  which would put the picture into its scene itself.
+- **The mark.** `AddedLayer` draws a green dashed outline and an "Added"
+  tag around every addition, so it never passes for the board's drawing.
+  Drag the tag to move it, × to remove it.
+
+Additions are plain data (`Addition`), with ids starting `added:`.
+`additionScene` turns them into Excalidraw elements (`convertToExcalidrawElements`)
+and files; the scene effect in `Slideshow` swaps them in on top of
+Excalidraw's own elements, the same way opacities are applied. `shown` (the
+board plus additions) is what selecting, Copy and the page grid see; pages
+are still found from the board alone, so adding never moves a cut.
+
+They follow the temporary-changes rule with the same exception as cuts: kept
+in `Slideshow` state until the owner presses Save, then stored in IndexedDB
+(`added:<board>`; pictures are too big for localStorage). Every step that
+can lose work asks first (`ConfirmDialog`): Save, Discard (back to the last
+save), removing one, and leaving the board (Esc, Back, O) with unsaved
+changes. Closing the tab gets the browser's own "Leave site?". The browser's
+own Back button isn't caught. `npm run e2e:add` checks all of it in headless
+Edge on a throwaway board.
 
 ## Addresses (`app/useRoute.ts`)
 
@@ -317,6 +352,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.21** — Add text and pictures on top of a board, marked "Added",
+  saved in the browser only after "Save changes" and an "are you sure?".
 - **v0.0.20** — Drop files from Explorer anywhere: a "Drop to open" overlay,
   several boards open as a group, other files get a short message, and
   Excalidraw never handles a drop itself.

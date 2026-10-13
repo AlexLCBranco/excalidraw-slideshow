@@ -1,0 +1,52 @@
+/* Above the selection layer, so the tags can be grabbed in any tool; only the tags take the mouse. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-added);
+  pointer-events: none;
+}
+
+/* Around each addition: dashed, in a colour the board's own drawing never gets from this app. */
+.outline {
+  position: absolute;
+  outline: var(--added-width) dashed var(--added);
+  outline-offset: var(--space-1);
+}
+
+.tag {
+  position: absolute;
+  bottom: 100%;
+  left: calc(-1 * var(--space-1));
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 0 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--added);
+  color: var(--added-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: move;
+  pointer-events: auto;
+  user-select: none;
+  touch-action: none;
+}
+
+.remove {
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--surface-raised);
+}

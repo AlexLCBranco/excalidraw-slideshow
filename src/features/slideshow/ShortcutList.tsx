@@ -14,6 +14,8 @@ const SHORTCUTS: [keys: string[], action: string][] = [
   [["Shift", "drag"], "add to the selection (Shift+click adds or removes one)"],
   [["Ctrl", "A"], "select everything on the page"],
   [["Ctrl", "C"], "copy the selection, to paste into Excalidraw"],
+  [["T"], "add text: click on the page and type"],
+  [["I"], "add a picture (or paste one with Ctrl+V)"],
   [["-", "="], "smaller / bigger pages (boards without frames, not workbooks)"],
   [["O"], "open another board"],
   [["?"], "these shortcuts"],

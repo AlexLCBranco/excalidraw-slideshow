@@ -2,10 +2,12 @@
  * Everything the app remembers between visits, all in this browser:
  *  - per board, the page height chosen, page cuts saved by hand, the page last shown and when it was
  *    last opened, and the groups put together by hand (localStorage), and
- *  - the connected folders and files, and cached board thumbnails
+ *  - the connected folders and files, cached board thumbnails, and text and pictures added to boards
  *    (IndexedDB, because file handles and images can't go in localStorage).
  * Every call tolerates storage being unavailable and falls back to "nothing saved".
  */
+
+import { type Addition, validAdditions } from "../domain/additions";
 
 const PREFIX = "excalidraw-slideshow:";
 
@@ -160,3 +162,11 @@ export interface CachedThumbnail {
 export const loadThumbnail = (id: string) => withStore<CachedThumbnail>("readonly", (s) => s.get("thumb:" + id));
 export const saveThumbnail = (id: string, thumb: CachedThumbnail) =>
   withStore("readwrite", (s) => void s.put(thumb, "thumb:" + id));
+
+/** Text and pictures added to a board and saved (IndexedDB: pictures are too big for localStorage). */
+export const loadAdditions = async (board: string) =>
+  validAdditions(await withStore<unknown>("readonly", (s) => s.get("added:" + board)));
+
+/** Saves a board's additions (an empty list forgets them). Resolves to whether they were stored. */
+export const saveAdditions = async (board: string, additions: readonly Addition[]) =>
+  (await withStore<IDBValidKey>("readwrite", (s) => s.put(additions, "added:" + board))) !== null;

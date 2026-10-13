@@ -1,0 +1,24 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-select);
+  cursor: text;
+}
+
+/* Typed straight onto the page, in the board's hand-drawn font, marked as an addition. */
+.box {
+  position: absolute;
+  min-width: var(--text-box-min);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: var(--added-width) dashed var(--added);
+  outline-offset: var(--space-1);
+  background: transparent;
+  color: var(--text);
+  font-family: Excalifont, Virgil, var(--font-sans);
+  line-height: 1.25;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+}

@@ -28,9 +28,13 @@ click-by-click steps. Explain design decisions briefly as you go.
 - **Changes made while viewing are temporary.** Anything the owner changes
   on a board in the app (opacity today, more later) is for that viewing only:
   kept in memory while the board is open, never written to the file and never
-  saved in the browser. Closing the board forgets it all. The one exception
-  the owner asked for: page cuts moved by hand (W) are kept in the browser
-  when the owner presses Save, and only then.
+  saved in the browser. Closing the board forgets it all. The exceptions
+  the owner asked for: page cuts moved by hand (W), and text and pictures
+  added on top of a board (T, I), are kept in the browser when the owner
+  presses Save (after an "are you sure?"), and only then.
+- **Additions never pass for the board.** Added text and pictures always
+  carry a visible "Added" mark, and the board's own elements can never be
+  removed or changed; only additions can be moved or removed.
 - **Works offline.** No runtime CDN loads. Excalidraw and its fonts ship from
   `node_modules` / `public/fonts`, and the service worker precaches the build.
 - **Never reload mid-presentation.** New versions apply themselves, but only
@@ -69,7 +73,8 @@ click-by-click steps. Explain design decisions briefly as you go.
 - **Excalidraw is read-only here.** It runs with `viewModeEnabled`; the app
   moves its camera through `updateScene`, and may change how elements are
   drawn for the current viewing (see the temporary-changes rule above).
-  Don't add editing.
+  The only editing is adding text and pictures on top (see above); don't
+  add more without the owner asking.
 - Excalidraw's internal class names (hidden in `styles/global.css`) are not a
   public API. After upgrading `@excalidraw/excalidraw`, check the menu, zoom
   buttons and help icon are still hidden.

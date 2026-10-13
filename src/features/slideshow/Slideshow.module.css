@@ -91,3 +91,44 @@
   color: var(--text-muted);
   font-size: var(--font-size-lg);
 }
+
+/* Shown while there are additions not yet saved, top right, clear of the toast and the cut toolbar. */
+.saveBar {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--added);
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-md));
+  white-space: nowrap;
+}
+
+.saveStatus {
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.saveButton {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.saveButton:hover,
+.saveButton[data-primary] {
+  background: var(--added);
+  color: var(--added-text);
+}
