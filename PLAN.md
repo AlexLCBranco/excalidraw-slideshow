@@ -17,7 +17,7 @@ not host other apps or live widgets inside boards; that is the gauntlet's job.
 
 | Item | Owner |
 |------|-------|
-| _nothing_ | — |
+| Split `Slideshow.tsx` by concern (usePages, useAdditions, useCamera, selectionActions, scene layers), a pure refactor behind `npm run e2e:all` | Claude |
 
 ## Queued
 

@@ -88,7 +88,9 @@ Vitest, oxlint. No state library: the app's state is a handful of
 ## Git
 
 One commit per coherent change, on `main`, made only after `npm run build`
-and `npm test` pass.
+and `npm test` pass. Any change under `src/features/` or `src/app/` must
+also pass `npm run e2e:all` (every e2e script against a local production
+build on :5181) before committing.
 
 Subject line: a short imperative description. Body: a short bullet list of
 what changed and why, not a file listing. Do not commit work in progress.
@@ -117,6 +119,7 @@ npm run dev      # dev server on :5180 (use this while coding)
 npm run build    # type-check + production build
 npm test         # unit tests for domain/
 npm run lint     # oxlint
+npm run e2e:all  # build, serve on :5181, run every e2e script against it
 ```
 
 The owner uses the deployed site, installed as an app from Edge/Chrome.

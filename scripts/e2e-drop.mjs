@@ -176,15 +176,16 @@ await page.waitForTimeout(300);
 check(hash() === 2, "← goes back");
 
 // Excalidraw's own drop handling would load a dropped board or picture into the scene: it must never see a drop.
-// With the Hand tool nothing of the app's covers the canvas, so the drop lands right on Excalidraw.
+// With the Hand tool the drop lands on the board itself: Excalidraw's canvas, or the
+// see-through layer that keeps an unzoomed page from being dragged. Either way Excalidraw must not see it.
 await page.keyboard.press("v");
 await page.waitForTimeout(300);
-const onCanvas = await page.evaluate(() => {
+const onBoard = await page.evaluate(() => {
   window.__excalidrawSawDrop = false;
   document.querySelector(".excalidraw")?.addEventListener("drop", () => (window.__excalidrawSawDrop = true));
-  return document.elementFromPoint(700, 400)?.closest(".excalidraw") !== null;
+  return document.elementFromPoint(700, 400)?.closest(".excalidraw, [data-testid=pin]") != null;
 });
-check(onCanvas, "with the Hand tool, the drop point is on Excalidraw's canvas");
+check(onBoard, "with the Hand tool, the drop point is on the board");
 await drop([PNG], [700, 400]);
 await page.waitForTimeout(500);
 check((await noteText()) === "Can't open .png files", `a picture dropped on the canvas only shows a message (“${await noteText()}”)`);
