@@ -13,6 +13,13 @@
   pointer-events: none;
 }
 
+/* Over a page that isn't zoomed: takes the mouse's drags, so the slide can't be moved. */
+.pin {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+}
+
 /* A workbook's strips, placed as in Excel: the controls along the top, the sheet tabs along the bottom. */
 .dock {
   position: fixed;

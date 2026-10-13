@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.25_
+_Last updated: 2026-10-13, v0.0.26_
 
 ## What it is
 

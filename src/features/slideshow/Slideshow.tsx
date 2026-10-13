@@ -561,6 +561,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       />
       {!camera && overlay !== "whole" && (
         <>
+          {/* A page that isn't zoomed is a slide: fixed on the screen, so the hand's drags never reach Excalidraw. */}
+          {tool === "hand" && <div className={styles.pin} data-testid="pin" />}
           <div className={styles.mask} style={{ top: 0, height: view.marginTop + topSpace }} />
           {/* Below a workbook page, its empty cells carry on, as in Excel. Rounded up, so no hairline of background shows between. */}
           <div className={styles.mask} style={{ bottom: 0, height: Math.ceil(view.marginBottom + barSpace), background: page.paper }} />

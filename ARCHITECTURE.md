@@ -162,8 +162,11 @@ camera can't drift off the page.
 Excalidraw re-centres itself shortly after mounting, so the first camera
 move waits `SETTLE_MS` (300 ms) after the API arrives.
 
-In view mode Excalidraw pans on every mouse drag, so the camera is re-applied
-on every `pointerup`: a drag can never leave the page off-centre.
+In view mode Excalidraw pans on every mouse drag. A page that isn't zoomed is
+a slide, fixed on the screen: with the hand, a transparent `pin` layer sits
+over the canvas and takes the drag, so Excalidraw never sees it (checked by
+`npm run e2e:slide`). As a backstop the camera is also re-applied on every
+`pointerup`.
 
 ### Controls
 
@@ -186,8 +189,8 @@ laser or text tool, then the board; leaving with unsaved additions asks first).
   first), so `LaserPointer` is an SVG overlay drawing a dot and a fading
   trail. Sitting over the canvas, it also stops pointing from panning.
 - **Hand / Select / Laser.** A switcher on the bar, as on excalidraw.com.
-  Hand lets Excalidraw pan (only useful zoomed in); Select is the default,
-  since an unzoomed drag would only snap back. V swaps the two, and the
+  Hand lets Excalidraw pan, only zoomed in; unzoomed, the page stays put.
+  Select is the default. V swaps the two, and the
   choice is remembered. The laser is temporary and returns to that choice.
 - **Select (V).** Excalidraw can't select in view mode either, so
   `SelectionLayer` is the same kind of overlay: a drag draws a box, a click
@@ -364,6 +367,8 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.26** — An unzoomed page can no longer be dragged around with the
+  hand; it stays fixed like a slide.
 - **v0.0.22** — Added text and pictures can be resized (corner handle) and
   moved by dragging them, not only their tag.
 - **v0.0.25** — Workbooks: the space under a page that ends early carries
