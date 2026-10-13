@@ -3,7 +3,15 @@ export type Picked = FileSystemFileHandle | File;
 
 const PICKER_OPTIONS = {
   id: "boards",
-  types: [{ description: "Excalidraw board", accept: { "application/json": [".excalidraw", ".json"] } }],
+  types: [
+    {
+      description: "Excalidraw board or Excel workbook",
+      accept: {
+        "application/json": [".excalidraw", ".json"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      },
+    },
+  ],
 };
 
 /** Shows the file picker. Resolves to null when cancelled. */
@@ -19,7 +27,7 @@ export async function pickBoardFile(): Promise<Picked | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".excalidraw,.json";
+    input.accept = ".excalidraw,.json,.xlsx";
     input.onchange = () => resolve(input.files?.[0] ?? null);
     input.oncancel = () => resolve(null);
     input.click();

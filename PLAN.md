@@ -46,6 +46,9 @@ asking.
 
 ## Not being built
 
+- Editing workbooks, recalculating formulas, charts and shapes drawn in
+  Excel (ExcelJS doesn't read them), bold and italic cell text (Excalidraw
+  text has no bold). Workbooks are shown, never changed.
 - Editing boards. Editing happens on excalidraw.com; this app only presents.
 - Writing to board files, including adding frames. The owner's files are
   read-only to this app.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { isSpreadsheet } from "../../lib/boardFile";
 import { type Group, newGroupId } from "../../lib/groups";
 import { type BoardEntry, canConnectFolders } from "../../lib/library";
 import { loadLastOpened, type SavedGroup, type Source } from "../../lib/storage";
@@ -72,8 +73,11 @@ export function LibraryScreen(p: Props) {
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return p.entries.filter((e) => displayName(e.name).toLowerCase().includes(q)).sort(SORTS[sort].compare);
-  }, [p.entries, query, sort]);
+    return p.entries
+      // A group plays drawings back to back, so workbooks can't be picked into one.
+      .filter((e) => displayName(e.name).toLowerCase().includes(q) && !(picking && isSpreadsheet(e.name)))
+      .sort(SORTS[sort].compare);
+  }, [p.entries, query, sort, picking]);
 
   const shownGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -183,13 +187,13 @@ export function LibraryScreen(p: Props) {
                 Open a file
               </button>
             </div>
-            <p className={styles.hint}>Or drop a .excalidraw file anywhere on this window.</p>
+            <p className={styles.hint}>Or drop a .excalidraw or .xlsx file anywhere on this window.</p>
           </Hero>
         )}
 
         {p.state === "ready" && p.sources.length > 0 && p.entries.length === 0 && (
           <Hero title="No boards found">
-            <p>None of the connected folders hold .excalidraw files.</p>
+            <p>None of the connected folders hold .excalidraw or .xlsx files.</p>
           </Hero>
         )}
 

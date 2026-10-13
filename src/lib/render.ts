@@ -33,19 +33,19 @@ export async function renderPage(board: Board, page: Page, maxSize: number): Pro
   const canvas = await exportToCanvas({
     elements: board.elements.filter((e) => !e.isDeleted) as never,
     files: board.files as BinaryFiles,
-    appState: { exportBackground: true, exportWithDarkMode: true, viewBackgroundColor: board.background },
+    appState: { exportBackground: true, exportWithDarkMode: !board.exactColors, viewBackgroundColor: board.background },
     exportingFrame: frame,
     maxWidthOrHeight: maxSize,
   });
   return new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.8));
 }
 
-/** Draws elements to a PNG the way they look on screen (dark), for pasting into other apps. */
+/** Draws elements to a PNG the way they look on screen (dark, or a workbook's own colours), for pasting into other apps. */
 export function renderPicture(elements: readonly SceneElement[], board: Board): Promise<Blob> {
   return exportToBlob({
     elements: elements.filter((e) => !e.isDeleted) as never,
     files: board.files as BinaryFiles,
-    appState: { exportBackground: true, exportWithDarkMode: true, viewBackgroundColor: board.background },
+    appState: { exportBackground: true, exportWithDarkMode: !board.exactColors, viewBackgroundColor: board.background },
     exportPadding: PICTURE_PADDING,
     getDimensions: (width: number, height: number) => {
       const scale = Math.min(PICTURE_SCALE, PICTURE_MAX_PX / Math.max(width, height));

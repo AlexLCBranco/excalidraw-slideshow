@@ -41,6 +41,9 @@
   --control-height: 36px;
   /* Strip kept free at the bottom of the slideshow for the control bar: bar + its gap to the edge + breathing room. */
   --bar-space: 72px;
+  /* A workbook's sheet tabs, and the strip kept free for them above the bar. */
+  --tab-height: 28px;
+  --tabs-space: 44px;
   --thumb-max-height: 360px;
   --icon-button: 36px;
   --progress-height: 3px;

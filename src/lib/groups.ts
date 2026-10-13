@@ -1,3 +1,4 @@
+import { isSpreadsheet } from "./boardFile";
 import type { BoardEntry } from "./library";
 import type { SavedGroup } from "./storage";
 
@@ -24,7 +25,8 @@ const byName = (a: BoardEntry, b: BoardEntry) => a.name.localeCompare(b.name, un
 export function folderGroups(entries: readonly BoardEntry[]): Group[] {
   const byFolder = new Map<string, BoardEntry[]>();
   for (const e of entries) {
-    if (!e.folder.includes("/")) continue;
+    // Workbooks have pages of their own; only drawings are played back to back.
+    if (!e.folder.includes("/") || isSpreadsheet(e.name)) continue;
     byFolder.set(e.folder, [...(byFolder.get(e.folder) ?? []), e]);
   }
   return [...byFolder]

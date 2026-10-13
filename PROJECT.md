@@ -1,12 +1,12 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-09-28, v0.0.17_
+_Last updated: 2026-10-12, v0.0.18_
 
 ## What it is
 
-A web app that presents any `.excalidraw` board as a slideshow: open a
-board, and ← / → move page to page, each page fitted to the screen. Made
-because the owner draws long boards on excalidraw.com (pages stacked
+A web app that presents any `.excalidraw` board (or `.xlsx` Excel
+workbook) as a slideshow: open a board, and ← / → move page to page, each
+page fitted to the screen. Made because the owner draws long boards on excalidraw.com (pages stacked
 top to bottom, 7–35 MB, lots of images) and the Obsidian Excalidraw plugin
 can't cope with them. It only presents: editing stays on excalidraw.com, and
 the app never changes a board file. Boards never leave the owner's PC; the
@@ -20,8 +20,8 @@ one click to open a board, clean code.
 ## Stack
 
 Vite, React 19, TypeScript (strict), `@excalidraw/excalidraw` (read-only, in
-view mode), CSS Modules + design tokens, Vitest, oxlint. No state library
-and no backend: settings live in the browser (localStorage, IndexedDB).
+view mode), ExcelJS (reads workbooks, in a Web Worker), CSS Modules +
+design tokens, Vitest, oxlint. No state library and no backend: settings live in the browser (localStorage, IndexedDB).
 Layered `app -> features -> lib -> domain -> styles`; page finding and
 camera maths live in `domain/`, which has the tests.
 
@@ -34,6 +34,10 @@ camera maths live in `domain/`, which has the tests.
 - Library: connect folders or files once, boards listed with a picture of
   their first page, refreshed when boards change
 - Groups: play several boards back to back (a subfolder, or picked by hand)
+- Excel workbooks (.xlsx): every visible sheet in tab order, with a tab bar;
+  long or wide sheets split into screen-sized pages (header row repeated,
+  pictures never cut); fills, colours, borders, merged cells and pictures
+  as in Excel; read in the background so the app never freezes
 - Control bar, page grid (G), laser pointer (K), zoom, Hand / Select switch
 - Select with a box, lasso (Alt+drag), Shift to add, Ctrl+A for the page;
   then Copy (pastes into excalidraw.com), Copy image, Copy text, and an
@@ -51,4 +55,7 @@ camera maths live in `domain/`, which has the tests.
 
 ## Open problems
 
+- Workbooks: bold/italic text shows plain (the app lists what it draws
+  differently on opening); charts and Excel-drawn shapes don't show, and
+  aren't detected, because ExcelJS doesn't read them
 - The lasso feels off, and it isn't yet known why

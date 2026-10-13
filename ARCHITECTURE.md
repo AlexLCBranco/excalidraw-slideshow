@@ -91,6 +91,48 @@ A board in a group that can't be read is skipped; the group only fails to
 open if none can. Resume and page height are remembered under the group's
 name.
 
+## Excel workbooks (`domain/sheet*.ts`, `lib/xlsx.ts`)
+
+An `.xlsx` file becomes a `Board` like any other, so every slideshow control
+(zoom, W, G, K, resume, per-page addresses) works on it unchanged. The
+difference is that its pages are fixed when it's read (`board.pages`) rather
+than found from the drawing, and `board.tabs` says where each sheet starts.
+
+1. **Read** (`lib/xlsx.ts`, ExcelJS) into plain data (`domain/sheet.ts`):
+   sizes in px (column width x 7, row points x 4/3, picture offsets
+   EMU / 9525), colours as hex. Theme colours come from the file's theme,
+   with tints; "Text 1" / "Background 1" are fixed black and white. Formulas
+   show the result saved in the file. A cell with no style of its own takes
+   its column's, then its row's (`indexSheet().style`): sheets are often
+   painted by selecting whole columns. Anything drawn differently from Excel
+   is collected into `board.notShown` and said once on opening.
+2. **Paginate** (`domain/sheetPages.ts`). The shown area is every cell with a
+   value or a look of its own, every merge and every picture (whole-column
+   styles reach all 16,384 columns, so they don't count). Rows are cut into
+   pages of at most 1920 x 1080 px (a 1080p screen at 100%), then columns if
+   still too wide, read left to right then down. A cut never falls inside a
+   picture or merge; a page may end early below a band of pictures once half
+   full; the size is shared out evenly so there's no sliver page. The first
+   written row (with merges starting in it) repeats atop later pages.
+3. **Draw** (`domain/sheetScene.ts`). Each page is laid out on its own, one
+   below the other, as locked Excalidraw shapes: a rectangle in the page's
+   most common fill (so painted sheets show no seams), runs of other fills,
+   gridlines only between unfilled cells, borders joined into lines, text
+   placed and wrapped as Excel would (Helvetica, measured by a `Measure`
+   passed in), pictures on top at their anchors.
+
+All of it runs in a Web Worker (`lib/xlsx.worker.ts`, started by
+`lib/boardFile.ts`): a 5 MB workbook takes a second or two to read, and the
+app keeps running meanwhile ("Opening…"). The worker measures text with an
+`OffscreenCanvas` in the font string Excalidraw draws with.
+
+Excalidraw's dark theme inverts every colour, which would turn a black sheet
+white, so workbooks (`board.exactColors`) use its light theme, with the
+app's dark background around the pages. Workbooks don't join groups.
+Tests: `sheetPages.test.ts`, `sheetScene.test.ts`, and `lib/xlsx.test.ts` on
+a real file (`tests/fixtures/`); `npm run e2e` opens it on the live site in
+headless Edge.
+
 ## Presenting (`features/slideshow/`)
 
 Excalidraw runs with `viewModeEnabled` + `zenModeEnabled`, dark theme. The
@@ -244,6 +286,7 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.18** — Excel workbooks (.xlsx): sheets as pages, with sheet tabs.
 - **v0.0.17** — Whole-board view (W): see the page cuts and move them by
   hand, with the choice to save them or not.
 - **v0.0.8** — Zoom buttons, a Hand / Select / Laser switcher, and selecting: drag a box over elements and

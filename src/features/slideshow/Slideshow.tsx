@@ -8,6 +8,7 @@ import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
 import { boardPages, type Camera, DEFAULT_PAGE_HEIGHT, fitAll, fitPage, pageAt, zoomAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { clipboardText, selectionText } from "../../domain/selection";
+import { tabOf } from "../../domain/sheetPages";
 import type { SceneElement } from "../../domain/types";
 import { renderPicture } from "../../lib/render";
 import {
@@ -29,6 +30,7 @@ import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { PageGrid } from "./PageGrid";
 import { type SelectionAction, SelectionLayer } from "./SelectionLayer";
+import { SheetTabs } from "./SheetTabs";
 import styles from "./Slideshow.module.css";
 import { useFullscreen } from "./useFullscreen";
 import { usePageThumbnails } from "./usePageThumbnails";
@@ -56,6 +58,8 @@ const ZOOM_STEP = 1.5;
 const MAX_ZOOM = 8;
 /** In the whole-board view, Ctrl+scrolling this many px zooms by about 2.7 times. */
 const WHEEL_ZOOM_PX = 300;
+/** How long the list of what a workbook shows differently from Excel stays up. */
+const NOT_SHOWN_MS = 8000;
 
 type Overlay = "none" | "grid" | "help" | "whole";
 /** What the mouse does on the page: the remembered mode, or the laser for a while. */
@@ -67,8 +71,10 @@ const toAppState = (c: Camera) => ({
   scrollY: c.scrollY,
 });
 
-/** A length token from tokens.css, in px, for layout maths done in JS. */
-const tokenPx = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+/** A token from tokens.css, for values used in JS. */
+const cssToken = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+/** A length token, in px, for layout maths done in JS. */
+const tokenPx = (name: string) => parseFloat(cssToken(name)) || 0;
 
 /**
  * Shows one page of a board at a time. Excalidraw runs read-only; this
@@ -84,7 +90,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // they last until the board is closed, unless saved: then they're remembered in this browser.
   const [cuts, setCuts] = useState<readonly number[] | null>(() => loadCuts(board.name));
   const [savedCuts, setSavedCuts] = useState(cuts);
-  const cuttable = canCut(autoPages);
+  // A workbook's pages follow its rows and pictures (domain/sheetPages.ts), not cuts.
+  const cuttable = !board.pages && canCut(autoPages);
   const pages = useMemo(
     () => (cuts && cuttable ? pagesFromCuts(autoPages, cuts) : autoPages),
     [autoPages, cuts, cuttable],
@@ -109,8 +116,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
-  // A pinned bar gets its own strip at the bottom, and the page is fitted above it.
-  const barSpace = barPinned ? tokenPx("--bar-space") : 0;
+  // A pinned bar gets its own strip at the bottom (with a workbook's sheet tabs above it), and the page is fitted above it.
+  const barSpace = barPinned ? tokenPx("--bar-space") + (board.tabs ? tokenPx("--tabs-space") : 0) : 0;
   const view = useMemo(() => fitPage(page, width, height - barSpace), [page, width, height, barSpace]);
 
   useEffect(() => {
@@ -166,8 +173,13 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   }, [board.name, current, onPageChange]);
 
   useEffect(() => {
-    if (ready && resumedAt > 0) showToast(`Resumed at page ${resumedAt + 1} · Home for page 1`);
-  }, [ready, resumedAt, showToast]);
+    if (!ready) return;
+    const resumed = resumedAt > 0 ? `Resumed at page ${resumedAt + 1} · Home for page 1` : "";
+    if (board.notShown?.length) {
+      const note = `Drawn differently from Excel: ${board.notShown.join(", ")}`;
+      showToast(resumed ? `${resumed} · ${note}` : note, NOT_SHOWN_MS);
+    } else if (resumed) showToast(resumed);
+  }, [ready, resumedAt, showToast, board.notShown]);
 
   useEffect(() => {
     if (!typed) return;
@@ -268,6 +280,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   };
 
   const resizePages = (factor: number) => {
+    if (board.pages) {
+      showToast("A workbook's pages follow its rows and pictures");
+      return;
+    }
     if (cuts && cuttable) {
       showToast("This board's pages are cut by hand · W to change them");
       return;
@@ -334,7 +350,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     () => ({
       elements: board.elements as never,
       files: board.files as BinaryFiles,
-      appState: { viewBackgroundColor: board.background },
+      // Around a workbook's pages, the app's own dark background (the sheets keep their colours).
+      appState: { viewBackgroundColor: board.exactColors ? cssToken("--bg") : board.background },
     }),
     [board],
   );
@@ -351,7 +368,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       <Excalidraw
         excalidrawAPI={setApi}
         initialData={initialData}
-        theme="dark"
+        theme={board.exactColors ? "light" : "dark"}
         viewModeEnabled
         zenModeEnabled
         UIOptions={{ canvasActions: { toggleTheme: false } }}
@@ -386,6 +403,15 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           <div className={styles.hud} data-visible={!barVisible}>
             {current + 1} / {pages.length}
           </div>
+          {board.tabs && overlay !== "whole" && (
+            <SheetTabs
+              tabs={board.tabs}
+              current={tabOf(board.tabs, current)}
+              visible={barVisible}
+              onPick={(tab) => go(tab.firstPage)}
+              onHover={setBarHovered}
+            />
+          )}
           <ControlBar
             visible={barVisible}
             index={current}
@@ -427,6 +453,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           current={current}
           camera={whole}
           editable={cuttable}
+          lockedNote={board.pages ? "A workbook's pages follow its rows and pictures" : "This board uses its frames as pages"}
           state={cutState}
           onCuts={changeCuts}
           onSave={saveCutsNow}

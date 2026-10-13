@@ -20,8 +20,10 @@ interface Props {
   pages: readonly Page[];
   current: number;
   camera: Camera;
-  /** False for boards whose frames are the pages: those can't be cut by hand. */
+  /** False for boards whose frames are the pages, and workbooks: those can't be cut by hand. */
   editable: boolean;
+  /** Says why, when they can't. */
+  lockedNote: string;
   state: CutState;
   onCuts: (cuts: readonly number[]) => void;
   onSave: () => void;
@@ -37,7 +39,7 @@ interface Props {
  * the cut, double-click to add or remove one. The board is drawn by
  * Excalidraw underneath; this layer only draws the pages and cuts over it.
  */
-export function CutOverview({ pages, current, camera, editable, state, onCuts, onSave, onAutomatic, onPick, onShowAll, onClose }: Props) {
+export function CutOverview({ pages, current, camera, editable, lockedNote, state, onCuts, onSave, onAutomatic, onPick, onShowAll, onClose }: Props) {
   const cuts = cutsOf(pages);
   const top = pages[0].y0;
   const bottom = pages[pages.length - 1].y1;
@@ -106,7 +108,7 @@ export function CutOverview({ pages, current, camera, editable, state, onCuts, o
         onMouseDown={(e) => e.preventDefault()}
         onDoubleClick={(e) => e.stopPropagation()}
       >
-        <span className={styles.status}>{editable ? STATUS[state] : "This board uses its frames as pages"}</span>
+        <span className={styles.status}>{editable ? STATUS[state] : lockedNote}</span>
         {editable && (
           <>
             <button className={styles.button} onClick={onSave} disabled={state === "automatic" || state === "saved"}>

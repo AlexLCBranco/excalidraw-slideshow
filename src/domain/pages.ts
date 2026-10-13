@@ -48,8 +48,10 @@ export function findPages(elements: readonly SceneElement[], pageHeight: number)
  * The pages of a board. A group of boards (see `stackBoards`) is split board
  * by board, so each keeps its own frames-or-bands choice, and its
  * automatically found pages are named after the board they come from.
+ * A spreadsheet's pages were fixed when it was read.
  */
-export function boardPages(board: Pick<Board, "elements" | "parts">, pageHeight: number): Page[] {
+export function boardPages(board: Pick<Board, "elements" | "parts" | "pages">, pageHeight: number): Page[] {
+  if (board.pages) return [...board.pages];
   if (!board.parts) return findPages(board.elements, pageHeight);
   return board.parts.flatMap((part) =>
     findPages(part.elements, pageHeight).map((p) => (p.frameId ? p : { ...p, name: part.name })),

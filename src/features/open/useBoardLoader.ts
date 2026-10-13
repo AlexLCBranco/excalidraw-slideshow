@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 
 import { stackBoards } from "../../domain/group";
-import { type Board, parseBoard } from "../../domain/scene";
+import type { Board } from "../../domain/scene";
+import { isSpreadsheet, readBoardFile } from "../../lib/boardFile";
 import { saveLastOpened } from "../../lib/storage";
 import type { Picked } from "./pickBoard";
 
@@ -36,7 +37,9 @@ export function useBoardLoader() {
     for (const source of sources) {
       try {
         const file = source instanceof File ? source : await source.getFile();
-        const result = parseBoard(file.name, await file.text());
+        // A group plays drawings back to back; a workbook has pages of its own.
+        if (sources.length > 1 && isSpreadsheet(file.name)) continue;
+        const result = await readBoardFile(file);
         if (typeof result === "string") problem ||= result;
         else boards.push(result);
       } catch {

@@ -1,5 +1,5 @@
-/** "worldcupboard2026.excalidraw" -> "worldcupboard2026" */
-export const displayName = (fileName: string) => fileName.replace(/\.excalidraw$/i, "");
+/** "worldcupboard2026.excalidraw" -> "worldcupboard2026", "scores.xlsx" -> "scores" */
+export const displayName = (fileName: string) => fileName.replace(/\.(excalidraw|xlsx)$/i, "");
 
 export function formatSize(bytes: number) {
   const mb = bytes / 1024 / 1024;

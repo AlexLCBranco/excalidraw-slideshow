@@ -1,5 +1,5 @@
-import { DEFAULT_PAGE_HEIGHT, findPages } from "../domain/pages";
-import { parseBoard } from "../domain/scene";
+import { boardPages, DEFAULT_PAGE_HEIGHT } from "../domain/pages";
+import { BOARD_FILE, readBoardFile } from "./boardFile";
 import { renderPage } from "./render";
 import { type CachedThumbnail, loadPageHeight, loadThumbnail, type Source, saveThumbnail } from "./storage";
 
@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-/** One board file found in a source. */
+/** One board file (or workbook) found in a source. */
 export interface BoardEntry {
   /** Stable across visits: the source's name plus the path inside it. Used in the address bar. */
   id: string;
@@ -30,7 +30,6 @@ export interface BoardEntry {
   lastModified: number;
 }
 
-const BOARD_FILE = /\.excalidraw$/i;
 /** Obsidian vaults hold deep trees of notes; boards live near the top. */
 const MAX_DEPTH = 4;
 const READ = { mode: "read" } as const;
@@ -109,9 +108,9 @@ export function boardThumbnail(entry: BoardEntry): Promise<CachedThumbnail | nul
   const job = queue.then(async () => {
     const cached = await loadThumbnail(entry.id);
     if (cached?.stamp === stamp) return cached;
-    const board = parseBoard(entry.name, await (await entry.handle.getFile()).text());
+    const board = await readBoardFile(await entry.handle.getFile());
     if (typeof board === "string") return null;
-    const pages = findPages(board.elements, pageHeight);
+    const pages = boardPages(board, pageHeight);
     const image = await renderPage(board, pages[0], THUMB_SIZE);
     if (!image) return null;
     const thumb = { stamp, image, pageCount: pages.length };

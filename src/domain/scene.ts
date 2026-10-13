@@ -1,4 +1,5 @@
-import type { SceneElement } from "./types";
+import type { SheetTab } from "./sheetPages";
+import type { Page, SceneElement } from "./types";
 
 /** A board file, parsed. `files` holds embedded images; the app passes it through untouched. */
 export interface Board {
@@ -11,6 +12,17 @@ export interface Board {
    * board's elements, already moved into place, so pages are found per board.
    */
   parts?: readonly BoardPart[];
+  /** Pages fixed when the file was read (spreadsheets, domain/sheetScene.ts) instead of found from the drawing. */
+  pages?: readonly Page[];
+  /** A spreadsheet's sheets, in the order of its tabs. */
+  tabs?: readonly SheetTab[];
+  /**
+   * Drawn in the file's own colours. Excalidraw's dark theme inverts every
+   * colour, which suits drawings but would turn a black sheet white.
+   */
+  exactColors?: boolean;
+  /** What the file holds that is drawn differently from Excel, or not at all, said once on opening. */
+  notShown?: readonly string[];
 }
 
 export interface BoardPart {

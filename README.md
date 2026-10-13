@@ -1,6 +1,7 @@
 # Excalidraw Slideshow
 
-Presents any `.excalidraw` board as a slideshow. Use ← and → to change pages.
+Presents any `.excalidraw` board, or `.xlsx` Excel workbook, as a slideshow.
+Use ← and → to change pages.
 
 **To use it:** open https://excalidraw-slideshow.vercel.app in Edge or
 Chrome, connect a folder of boards, then click a board. Install it from the
