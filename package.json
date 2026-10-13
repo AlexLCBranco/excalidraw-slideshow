@@ -14,6 +14,7 @@
     "e2e:slide": "node scripts/e2e-slide.mjs",
     "e2e:zoom": "node scripts/e2e-zoom.mjs",
     "e2e:pages": "node scripts/e2e-pages.mjs",
+    "e2e:select": "node scripts/e2e-select.mjs",
     "e2e:all": "node scripts/e2e-all.mjs",
     "lint": "oxlint",
     "postinstall": "node scripts/copy-fonts.mjs"
