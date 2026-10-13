@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.24_
+_Last updated: 2026-10-13, v0.0.25_
 
 ## What it is
 
@@ -40,7 +40,8 @@ camera maths live in `domain/`, which has the tests.
 - Groups: play several boards back to back (a subfolder, or picked by hand)
 - Excel workbooks (.xlsx): every visible sheet in tab order, laid out like
   Excel (controls in a strip along the top, sheet tabs along the
-  bottom, page right under the controls); long or wide sheets split into pages of a screenful at 100%
+  bottom, page right under the controls, empty space below in the sheet's
+  own colour); long or wide sheets split into pages of a screenful at 100%
   (header row repeated, pictures never cut); fills, colours, borders, merged cells and pictures
   as in Excel; cell notes as red corner marks, read by hovering; read in
   the background so the app never freezes

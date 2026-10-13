@@ -562,7 +562,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       {!camera && overlay !== "whole" && (
         <>
           <div className={styles.mask} style={{ top: 0, height: view.marginTop + topSpace }} />
-          <div className={styles.mask} style={{ bottom: 0, height: view.marginBottom + barSpace }} />
+          {/* Below a workbook page, its empty cells carry on, as in Excel. Rounded up, so no hairline of background shows between. */}
+          <div className={styles.mask} style={{ bottom: 0, height: Math.ceil(view.marginBottom + barSpace), background: page.paper }} />
         </>
       )}
 

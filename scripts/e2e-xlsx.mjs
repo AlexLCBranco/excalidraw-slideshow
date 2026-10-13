@@ -86,6 +86,8 @@ check(
   `controls along the top, sheet tabs at the bottom-left (${JSON.stringify(strip)})`,
 );
 const top = await pixel(5, strip.dock + 2);
+const below = await pixel(5, strip.h - strip.dock - 10);
+check(below.join() === "0,0,0", `space below the page carries on in the sheet colour, as Excel shows more rows (rgb ${below.join(",")})`);
 const toastTop = await page.$eval("div[class*=toast]", (t) => t.getBoundingClientRect().top);
 check(toastTop >= strip.dock, `notices show below the controls, not over them (top at ${toastTop} px)`);
 check(top.join() === "0,0,0", `the page starts right under the controls (rgb ${top.join(",")} there)`);

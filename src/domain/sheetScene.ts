@@ -57,7 +57,7 @@ export function workbookBoard(
     const drawn = drawPage(indexes[page.sheet], page, `${i}:`, top, measure);
     elements.push(...drawn.elements);
     notes.push(...drawn.notes);
-    boardPages.push({ x0: 0, y0: top, x1: drawn.width, y1: top + drawn.height, name: sheets[page.sheet].name });
+    boardPages.push({ x0: 0, y0: top, x1: drawn.width, y1: top + drawn.height, name: sheets[page.sheet].name, paper: drawn.paper });
     top += drawn.height + PAGE_GAP;
   });
   return { name, elements, files, background: WHITE, pages: boardPages, tabs, notes, exactColors: true };
@@ -164,7 +164,7 @@ function drawPage(index: SheetIndex, page: SheetPage, prefix: string, top: numbe
     notes.push({ ...box, text: note.text });
   }
 
-  return { elements: out, notes, width, height };
+  return { elements: out, notes, width, height, paper };
 
   function blockBox(r0: number, c0: number, r1: number, c1: number) {
     return { x0: xs.edge(c0), y0: ys.edge(r0), x1: xs.edge(c1 + 1), y1: ys.edge(r1 + 1) };

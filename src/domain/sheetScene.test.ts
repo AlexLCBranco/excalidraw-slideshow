@@ -34,6 +34,11 @@ function board(over: Partial<Sheet>): Board {
 const ofType = (b: Board, type: string) => b.elements.filter((e) => e.type === type) as (SceneElement & Record<string, unknown>)[];
 
 describe("workbookBoard", () => {
+  it("gives each page its empty cells' colour, to paint the space below it", () => {
+    expect(board({ colStyles: Array(10).fill(BLACK), cells: [{ row: 0, col: 0, text: "x", numeric: false }] }).pages?.[0].paper).toBe("#000000");
+    expect(board({ cells: [{ row: 0, col: 0, text: "x", numeric: false }] }).pages?.[0].paper).toBe("#ffffff");
+  });
+
   it("paints a column-painted sheet as one black shape, with no gridlines showing through", () => {
     const b = board({
       colStyles: Array(10).fill(BLACK),

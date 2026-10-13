@@ -41,4 +41,9 @@ export interface Page {
   name: string;
   /** The frame this page came from, if any. */
   frameId?: string;
+  /**
+   * A workbook page's most common cell colour. Space left below the page is
+   * painted this, as Excel shows more empty rows there.
+   */
+  paper?: string;
 }
