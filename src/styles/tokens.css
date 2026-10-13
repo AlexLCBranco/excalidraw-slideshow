@@ -44,9 +44,9 @@
   --control-height: 36px;
   /* Strip kept free at the bottom of the slideshow for the control bar: bar + its gap to the edge + breathing room. */
   --bar-space: 72px;
-  /* A workbook's sheet tabs, and the strip kept free for them above the bar. */
-  --tab-height: 28px;
-  --tabs-space: 44px;
+  /* A workbook's bottom strip (sheet tabs, then the controls), like Excel's, and its open tab's underline. */
+  --dock-height: 48px;
+  --tab-underline: 3px;
   --note-width: 320px;
   --thumb-max-height: 360px;
   --icon-button: 36px;

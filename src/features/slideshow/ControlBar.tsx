@@ -18,6 +18,8 @@ interface Props {
   fullscreen: boolean;
   tool: Tool;
   gridOpen: boolean;
+  /** Part of a workbook's bottom strip, rather than floating. */
+  docked?: boolean;
   /** Zoom relative to the fitted page (1 = whole page). */
   zoom: number;
   onBack: () => void;
@@ -40,6 +42,7 @@ export function ControlBar(p: Props) {
     <div
       className={styles.bar}
       data-visible={p.visible}
+      data-docked={p.docked}
       // Keep focus off the buttons, so Space and Enter stay slideshow keys.
       onMouseDown={(e) => e.preventDefault()}
       onMouseEnter={() => p.onHover(true)}

@@ -109,11 +109,14 @@ than found from the drawing, and `board.tabs` says where each sheet starts.
 2. **Paginate** (`domain/sheetPages.ts`). The shown area is every cell with a
    value or a look of its own, every merge and every picture (whole-column
    styles reach all 16,384 columns, so they don't count). Rows are cut into
-   pages of at most 1920 x 1080 px (a 1080p screen at 100%), then columns if
-   still too wide, read left to right then down. A cut never falls inside a
-   picture or merge; a page may end early below a band of pictures once half
-   full; the size is shared out evenly so there's no sliver page. The first
-   written row (with merges starting in it) repeats atop later pages.
+   pages of at most 1920 x 960 px (what Excel shows of a sheet on a 1080p
+   screen at 100%, less the window's title bar and the bottom strip), then
+   columns if still too wide, read left to right then down. Each band of
+   rows takes as many as fit, like scrolling down a screenful in Excel;
+   columns are shared out evenly, so there's no sliver page. A cut never
+   falls inside a picture or merge; a page may end early below a band of
+   pictures once 85% full. The first written row (with merges starting in
+   it) repeats atop later pages.
 3. **Draw** (`domain/sheetScene.ts`). Each page is laid out on its own, one
    below the other, as locked Excalidraw shapes: a rectangle in the page's
    most common fill (so painted sheets show no seams), runs of other fills,
@@ -145,7 +148,10 @@ app owns the camera: `fitPage` computes `zoom`, `scrollX` and `scrollY` so the
 page is centred and fitted (Excalidraw draws scene point `p` at screen
 `(p + scroll) * zoom`), then `updateScene` applies them. Two masks in the
 background colour cover whatever of the neighbouring pages would still show
-above and below.
+above and below. A workbook is shown as Excel shows a sheet: the page is held
+to the top edge (any spare space goes below it), and one full-width strip
+along the bottom holds the sheet tabs at the left and the control bar
+(`docked`) at the right, instead of the floating bar.
 
 Keys are captured on `window` in the capture phase, so Excalidraw never sees
 the arrows (it would pan with them). The mouse wheel is swallowed so the
@@ -358,6 +364,9 @@ local ports are fixed because connected folders are remembered per address.
 
 - **v0.0.22** — Added text and pictures can be resized (corner handle) and
   moved by dragging them, not only their tag.
+- **v0.0.23** — Workbooks look like Excel: pages fill a screenful of rows,
+  start at the top edge, and the sheet tabs and controls share one strip
+  along the bottom.
 - **v0.0.21** — Add text and pictures on top of a board, marked "Added",
   saved in the browser only after "Save changes" and an "are you sure?".
 - **v0.0.20** — Drop files from Explorer anywhere: a "Drop to open" overlay,

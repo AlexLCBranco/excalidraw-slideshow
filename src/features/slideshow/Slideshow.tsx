@@ -155,9 +155,13 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
 
   const current = Math.min(index, pages.length - 1);
   const page = pages[current];
-  // A pinned bar gets its own strip at the bottom (with a workbook's sheet tabs above it), and the page is fitted above it.
-  const barSpace = barPinned ? tokenPx("--bar-space") + (board.tabs ? tokenPx("--tabs-space") : 0) : 0;
-  const view = useMemo(() => fitPage(page, width, height - barSpace), [page, width, height, barSpace]);
+  // A pinned bar gets its own strip at the bottom, and the page is fitted above it. A workbook
+  // is shown as Excel shows it: its strip holds the sheet tabs and the bar, and the page starts at the top.
+  const barSpace = barPinned ? tokenPx(board.tabs ? "--dock-height" : "--bar-space") : 0;
+  const view = useMemo(
+    () => fitPage(page, width, height - barSpace, board.tabs ? "top" : "centre"),
+    [page, width, height, barSpace, board.tabs],
+  );
 
   useEffect(() => {
     if (!api) return;
@@ -516,6 +520,33 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     overlay !== "whole" &&
     (barPinned || overlay !== "none" || barHovered || (pointer.moving && (tool !== "laser" || pointer.nearBottom)));
 
+  // Floating, or in a workbook's strip next to its sheet tabs.
+  const controlBar = (
+    <ControlBar
+      visible={barVisible}
+      docked={Boolean(board.tabs)}
+      index={current}
+      count={pages.length}
+      pageName={page.name}
+      fullscreen={fullscreen}
+      tool={tool}
+      gridOpen={overlay === "grid"}
+      zoom={camera ? camera.zoom / view.zoom : 1}
+      onBack={close}
+      onPrevious={() => go(current - 1)}
+      onNext={() => go(current + 1)}
+      onGrid={() => toggleOverlay("grid")}
+      onZoomIn={() => zoomBy(ZOOM_STEP)}
+      onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
+      onZoomReset={() => setZoomed(null)}
+      onTool={chooseTool}
+      onAddImage={() => imageInput.current?.click()}
+      onFullscreen={toggleFullscreen}
+      onHelp={() => toggleOverlay("help")}
+      onHover={setBarHovered}
+    />
+  );
+
   return (
     <div className={styles.stage} data-cursor-hidden={ready && !pointer.moving && !temporary && !confirm}>
       <Excalidraw
@@ -528,8 +559,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       />
       {!camera && overlay !== "whole" && (
         <>
-          <div className={styles.mask} style={{ top: 0, height: view.marginY }} />
-          <div className={styles.mask} style={{ bottom: 0, height: view.marginY + barSpace }} />
+          <div className={styles.mask} style={{ top: 0, height: view.marginTop }} />
+          <div className={styles.mask} style={{ bottom: 0, height: view.marginBottom + barSpace }} />
         </>
       )}
 
@@ -576,37 +607,19 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           <div className={styles.hud} data-visible={!barVisible}>
             {current + 1} / {pages.length}
           </div>
-          {board.tabs && overlay !== "whole" && (
-            <SheetTabs
-              tabs={board.tabs}
-              current={tabOf(board.tabs, current)}
-              visible={barVisible}
-              onPick={(tab) => go(tab.firstPage)}
-              onHover={setBarHovered}
-            />
+          {board.tabs ? (
+            <div
+              className={styles.dock}
+              data-visible={barVisible}
+              onMouseEnter={() => setBarHovered(true)}
+              onMouseLeave={() => setBarHovered(false)}
+            >
+              <SheetTabs tabs={board.tabs} current={tabOf(board.tabs, current)} onPick={(tab) => go(tab.firstPage)} />
+              {controlBar}
+            </div>
+          ) : (
+            controlBar
           )}
-          <ControlBar
-            visible={barVisible}
-            index={current}
-            count={pages.length}
-            pageName={page.name}
-            fullscreen={fullscreen}
-            tool={tool}
-            gridOpen={overlay === "grid"}
-            zoom={camera ? camera.zoom / view.zoom : 1}
-            onBack={close}
-            onPrevious={() => go(current - 1)}
-            onNext={() => go(current + 1)}
-            onGrid={() => toggleOverlay("grid")}
-            onZoomIn={() => zoomBy(ZOOM_STEP)}
-            onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
-            onZoomReset={() => setZoomed(null)}
-            onTool={chooseTool}
-            onAddImage={() => imageInput.current?.click()}
-            onFullscreen={toggleFullscreen}
-            onHelp={() => toggleOverlay("help")}
-            onHover={setBarHovered}
-          />
         </>
       )}
 

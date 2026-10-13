@@ -126,17 +126,22 @@ export function elementBounds(e: SceneElement) {
 }
 
 /**
- * The camera that fits `page` into a `width` x `height` viewport, centred.
+ * The camera that fits `page` into a `width` x `height` viewport, centred
+ * across. Down, it's centred too, or held to the top edge (as Excel shows a
+ * sheet), leaving any spare space below it.
  * Excalidraw draws scene point p at screen (p + scroll) * zoom.
  */
-export function fitPage(page: Page, width: number, height: number) {
+export function fitPage(page: Page, width: number, height: number, align: "centre" | "top" = "centre") {
   const zoom = Math.min(width / (page.x1 - page.x0), height / (page.y1 - page.y0));
+  const spare = Math.max(0, height - (page.y1 - page.y0) * zoom);
+  const marginTop = align === "top" ? 0 : spare / 2;
   return {
     zoom,
     scrollX: width / (2 * zoom) - (page.x0 + page.x1) / 2,
-    scrollY: height / (2 * zoom) - (page.y0 + page.y1) / 2,
+    scrollY: marginTop / zoom - page.y0,
     /** Empty screen space above and below the page, covered to hide neighbours. */
-    marginY: Math.max(0, (height - (page.y1 - page.y0) * zoom) / 2),
+    marginTop,
+    marginBottom: spare - marginTop,
   };
 }
 

@@ -73,6 +73,19 @@ const pixel = async (x, y) => {
 const maskHeight = await page.$eval("div[class*=mask]", (m) => m.getBoundingClientRect().height);
 const sheet = await pixel(5, Math.round(maskHeight) + 5);
 check(sheet.join() === "0,0,0", `empty cells of the column-painted sheet are black (got rgb ${sheet.join(",")})`);
+// Shown as Excel shows a sheet: from the top edge, with one strip along the bottom
+// holding the sheet tabs at the left and the controls beside them.
+const top = await pixel(5, 2);
+check(top.join() === "0,0,0", `the page starts at the top edge, not centred (top-left is rgb ${top.join(",")})`);
+const strip = await page.evaluate(() => {
+  const nav = document.querySelector('nav[aria-label="Sheets"]').getBoundingClientRect();
+  const bar = document.querySelector('button[title="All pages (G)"]').getBoundingClientRect();
+  return { navLeft: nav.left, navBottom: nav.bottom, barTop: bar.top, barLeft: bar.left, navRight: nav.right, h: innerHeight };
+});
+check(
+  strip.navLeft < 2 && strip.h - strip.navBottom < 8 && strip.barTop > strip.h - 60 && strip.barLeft > strip.navRight - 2,
+  `sheet tabs at the bottom-left, controls to their right on the same strip (${JSON.stringify(strip)})`,
+);
 const middle = await pixel(800, 450);
 check(!["0,0,0", "18,18,18"].includes(middle.join()), `the picture shows (middle of the page is rgb ${middle.join(",")}, not sheet black or background)`);
 

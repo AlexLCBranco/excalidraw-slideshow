@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.22_
+_Last updated: 2026-10-13, v0.0.23_
 
 ## What it is
 
@@ -38,9 +38,10 @@ camera maths live in `domain/`, which has the tests.
   or workbook opens and joins the library; several boards open as a group
   in the order dropped; anything else just says "Can't open .pdf files"
 - Groups: play several boards back to back (a subfolder, or picked by hand)
-- Excel workbooks (.xlsx): every visible sheet in tab order, with a tab bar;
-  long or wide sheets split into screen-sized pages (header row repeated,
-  pictures never cut); fills, colours, borders, merged cells and pictures
+- Excel workbooks (.xlsx): every visible sheet in tab order, laid out like
+  Excel (page from the top edge, sheet tabs and controls in one strip along
+  the bottom); long or wide sheets split into pages of a screenful at 100%
+  (header row repeated, pictures never cut); fills, colours, borders, merged cells and pictures
   as in Excel; cell notes as red corner marks, read by hovering; read in
   the background so the app never freezes
 - Control bar, page grid (G), laser pointer (K), zoom, Hand / Select switch

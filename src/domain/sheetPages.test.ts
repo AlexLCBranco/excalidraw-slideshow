@@ -58,6 +58,12 @@ describe("paginateSheet", () => {
     expect(pages.flatMap((p, i) => (i ? own(p.rows) : p.rows))).toEqual([...Array(200).keys()]);
   });
 
+  it("fills each page with as many rows as fit, like a screenful in Excel", () => {
+    const pages = pagesOf(sheet({ written: grid(200, 3) })); // 4000 px tall
+    // Every page but the last is full: one more row wouldn't have fitted.
+    for (const p of pages.slice(0, -1)) expect((p.rows.length + 1) * 20).toBeGreaterThan(PAGE_HEIGHT);
+  });
+
   it("splits a very wide sheet by columns", () => {
     const pages = pagesOf(sheet({ written: grid(5, 80) })); // 5120 px wide
     expect(pages.length).toBe(3);
@@ -85,9 +91,9 @@ describe("paginateSheet", () => {
   });
 
   it("prefers to break just below a picture", () => {
-    // A picture over rows 2-30 (fills most of a page), then text rows: the page ends under the picture.
-    const pages = pagesOf(sheet({ written: grid(120, 2), pictures: [picture(2, 0, 30, 1)] }));
-    expect(pages[0].rows.at(-1)).toBe(30);
+    // A picture over rows 2-42 (fills most of a page), then text rows: the page ends under the picture.
+    const pages = pagesOf(sheet({ written: grid(120, 2), pictures: [picture(2, 0, 42, 1)] }));
+    expect(pages[0].rows.at(-1)).toBe(42);
   });
 
   it("gives a picture taller than a page a page of its own, uncut", () => {

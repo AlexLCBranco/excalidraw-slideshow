@@ -1,13 +1,14 @@
 import { colWidth, indexSheet, pictureSpan, rowHeight, type Sheet, type SheetIndex, sheetExtent } from "./sheet";
 
 /**
- * The most a spreadsheet page holds, in px at 100%: a 1080p screen. A page
- * this size is shown at about Excel's own size, so the text stays readable.
+ * The most a spreadsheet page holds, in px at 100%: what Excel shows of a
+ * sheet on a 1080p screen, which is the screen less the window's title bar
+ * and the slideshow's bottom strip. A full page is shown at Excel's own size.
  */
 export const PAGE_WIDTH = 1920;
-export const PAGE_HEIGHT = 1080;
-/** A page may stop early at a gap between pictures once it's this full. */
-const MIN_FILL = 0.5;
+export const PAGE_HEIGHT = 960;
+/** A page may stop early at the bottom of a picture once it's this full. */
+const MIN_FILL = 0.85;
 /** A header taller than this share of a page isn't repeated: it would crowd out the rows. */
 const MAX_HEADER = 0.25;
 /** How much an even share of a sheet grows per try, until it fits in as few pages as filling them would. */
@@ -54,7 +55,8 @@ export const tabOf = (tabs: readonly SheetTab[], page: number) =>
 /**
  * Splits one sheet into pages that fit `PAGE_WIDTH` x `PAGE_HEIGHT`: bands of
  * rows, each cut into blocks of columns when the sheet is too wide, read left
- * to right, then down. A picture or merged cell is never cut: the rows and
+ * to right, then down. Like scrolling down a screenful in Excel, each band
+ * takes as many rows as fit; columns are shared out evenly, so no page is a sliver. A picture or merged cell is never cut: the rows and
  * columns it covers stay on one page, even when that makes the page bigger.
  * The header row is repeated at the top of every later page.
  */
@@ -73,7 +75,7 @@ export function paginateSheet(index: SheetIndex): { rows: number[]; cols: number
   const header = headerRows(index, rowBands);
   const headerHeight = header ? sum(heights, header[0], header[1] + 1) : 0;
 
-  const rowChunks = evenSplit(heights, PAGE_HEIGHT, rowKeep, rowBands, headerHeight);
+  const rowChunks = splitSpans(heights, PAGE_HEIGHT, rowKeep, rowBands, headerHeight);
   const colChunks = evenSplit(widths, PAGE_WIDTH, colKeep, colBands, 0);
 
   return rowChunks.flatMap(([r0, r1]) => {
@@ -104,7 +106,7 @@ function headerRows(index: SheetIndex, pictureRows: readonly Span[]): Span | nul
  * runs of at most `budget` each. A cut never falls inside a `keep` span; a
  * span bigger than the budget gets a page of its own, as big as it needs.
  * When a page can end at the bottom of a picture (a `bands` span) and still be
- * at least half full, it does, so pictures and the text around them aren't
+ * nearly full, it does, so pictures and the text around them aren't
  * split awkwardly. Every page after the first loses `reserve` (the repeated
  * header) from its budget.
  */

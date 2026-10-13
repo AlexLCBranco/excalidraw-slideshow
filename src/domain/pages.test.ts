@@ -64,7 +64,17 @@ describe("fitPage", () => {
     expect(view.zoom).toBe(0.5);
     expect(view.scrollX).toBe(0);
     expect(view.scrollY).toBe(500);
-    expect(view.marginY).toBe(250);
+    expect(view.marginTop).toBe(250);
+    expect(view.marginBottom).toBe(250);
+  });
+
+  it("can hold the page to the top edge, leaving the spare space below", () => {
+    const view = fitPage({ x0: 0, y0: 100, x1: 2000, y1: 1100, name: "" }, 1000, 1000, "top");
+    expect(view.zoom).toBe(0.5);
+    // Scene y 100 (the page's top) lands on screen y 0.
+    expect((100 + view.scrollY) * view.zoom).toBe(0);
+    expect(view.marginTop).toBe(0);
+    expect(view.marginBottom).toBe(500);
   });
 });
 

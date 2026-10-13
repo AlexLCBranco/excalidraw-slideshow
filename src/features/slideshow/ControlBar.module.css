@@ -22,6 +22,17 @@
   pointer-events: none;
 }
 
+/* In a workbook's strip, the bar is part of the strip rather than floating over the page. */
+.bar[data-docked="true"] {
+  position: static;
+  flex: none;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  translate: none;
+}
+
 .button,
 .counter {
   display: grid;
