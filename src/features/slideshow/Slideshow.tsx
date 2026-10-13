@@ -64,9 +64,11 @@ type Temporary = "laser" | "text";
 export type Tool = MouseMode | Temporary;
 
 /**
- * Shows one page of a board at a time. Excalidraw runs read-only; this
- * component owns the camera, moving it page to page and covering whatever of
- * the neighbouring pages would still be visible above and below.
+ * Shows one page of a board at a time. Excalidraw runs read-only; the
+ * camera, pages, additions and what is drawn over the board each live in their
+ * own hook or module (ARCHITECTURE.md, Presenting). This wires them to the
+ * keys, the control bar and the layers drawn over the page, and covers whatever
+ * of the neighbouring pages would still be visible above and below.
  */
 export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onClose }: Props) {
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);

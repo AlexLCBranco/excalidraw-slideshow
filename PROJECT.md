@@ -66,8 +66,9 @@ camera maths live in `domain/`, which has the tests.
 - Stays a viewer: the owner's big idea (the "gauntlet", a canvas of live
   widgets) is a separate project, and this app is one of its pieces. No
   Trello list or other apps inside boards (see `PLAN.md`)
-- Split `Slideshow.tsx` by concern, behind end-to-end tests run locally
-  before every push
+- Nothing queued. `Slideshow.tsx` is split by concern (pages, camera,
+  additions, selection actions, scene layers), so a new on-screen change
+  is one new layer; `npm run e2e:all` checks every change before a push
 
 ## Open problems
 

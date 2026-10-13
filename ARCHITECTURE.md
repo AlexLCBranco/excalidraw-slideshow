@@ -59,7 +59,7 @@ they are, and named after the one it overlaps most. Changing cuts keeps the
 same part of the board on screen (`pageAt`).
 
 Cuts follow the temporary-changes rule with one exception the owner asked
-for: they live in `Slideshow` state and are forgotten on close, unless the
+for: they live in `usePages` state and are forgotten on close, unless the
 owner presses Save, which stores them in localStorage (`cuts:<board>`).
 "Automatic" goes back to the found cuts; saving that forgets the stored ones.
 While cuts are set by hand, `-` / `=` do nothing and say so.
@@ -177,6 +177,35 @@ over the canvas and takes the drag, so Excalidraw never sees it (checked by
 `npm run e2e:slide`). As a backstop the camera is also re-applied on every
 `pointerup`.
 
+### How `Slideshow` is split
+
+`Slideshow.tsx` only wires state together and renders. Each concern is a
+hook or module of its own:
+
+- `usePages`: the page height (`-` / `=`, remembered), cuts moved by hand,
+  the saved cuts and saving them.
+- `useCamera`: fitting the page, zooming it, the whole-board view and its
+  wheel, the space kept for the bar, and re-fitting on every `pointerup`.
+- `useAdditions`: added text and pictures, paste, the save / discard /
+  remove questions, the leave guard and `beforeunload`. It asks through a
+  callback, so the confirm dialog stays in `Slideshow`.
+- `selectionActions.ts`: Copy, Copy image, Copy text, Reset.
+- `sceneLayers.ts`: everything drawn into Excalidraw's scene for this
+  viewing is a list of layers (`SceneLayer`), applied in order on top of
+  the board's own elements by `useSceneLayers`. A layer adds elements
+  (with their files), changes how elements are drawn, or both. Today the
+  list is the additions, then opacity changes. A new kind of on-screen
+  change is one new layer in that list.
+
+The hooks don't reach into each other. Where they meet, `Slideshow` passes
+a callback: when pages change, `usePages` calls `keepSpot` with the new
+pages, and `Slideshow` moves to the one holding the old page's middle
+(`pageAt`). The camera follows the current page from there.
+
+`npm run e2e:all` (build, serve on :5181, every e2e script) guards all of
+this. `e2e:pages` covers page sizes, cuts, the whole-board view and zoom;
+`e2e:select` covers what's drawn over the board and the selection actions.
+
 ### Controls
 
 The `ControlBar` stays on screen by default. It gets its own strip at the
@@ -212,7 +241,7 @@ laser or text tool, then the board; leaving with unsaved additions asks first).
   adds to the selection; Shift+click on a selected element takes it out
   (`extendSelection`). Ctrl+A selects what lies wholly inside the current
   page. A selection belongs to its page.
-  Actions on it are a list (`selectionActions` in `Slideshow`), so a new one
+  Actions on it are a list (`selectionActions.ts`), so a new one
   is one entry. Copy writes Excalidraw's own clipboard format, so it pastes
   into excalidraw.com as shapes. Copy image puts a PNG on the clipboard,
   drawn by Excalidraw’s `exportToBlob` in dark mode at 2x (at most 4096 px a
@@ -224,13 +253,14 @@ laser or text tool, then the board; leaving with unsaved additions asks first).
   row’s bottom, then left to right (`selectionText`). None of them change the board.
 - **Opacity.** A slider next to the selection actions dims the selected
   elements, like excalidraw.com's, but only on screen. The chosen values
-  live in `Slideshow` state (`domain/opacity.ts`) and are pushed to
-  Excalidraw with `updateScene(..., CaptureUpdateAction.NEVER)`, starting
-  from Excalidraw's own scene elements so nothing it restored on load is
+  live in `Slideshow` state (`domain/opacity.ts`) and reach Excalidraw
+  as a scene layer (see below), starting from Excalidraw's own scene
+  elements so nothing it restored on load is
   lost. `board.elements` keeps the originals, so Copy and the page grid
   never see the change, and closing the board forgets it. Reset puts the
   selection back to its own opacity. Every change made while viewing follows
-  this pattern: state in `Slideshow`, applied on screen only, gone on close.
+  this pattern: state held while the board is open, applied on screen only
+  (a scene layer), gone on close.
 - **Resume.** The last page shown is saved per board and restored on open.
 
 ## Adding text and pictures (`domain/additions.ts`, `lib/additions.ts`)
@@ -258,13 +288,13 @@ moved or removed.
 
 Additions are plain data (`Addition`), with ids starting `added:`.
 `additionScene` turns them into Excalidraw elements (`convertToExcalidrawElements`)
-and files; the scene effect in `Slideshow` swaps them in on top of
-Excalidraw's own elements, the same way opacities are applied. `shown` (the
+and files; their scene layer swaps them in on top of Excalidraw's own
+elements, before the opacity layer. `shown` (the
 board plus additions) is what selecting, Copy and the page grid see; pages
 are still found from the board alone, so adding never moves a cut.
 
 They follow the temporary-changes rule with the same exception as cuts: kept
-in `Slideshow` state until the owner presses Save, then stored in IndexedDB
+in `useAdditions` state until the owner presses Save, then stored in IndexedDB
 (`added:<board>`; pictures are too big for localStorage). Every step that
 can lose work asks first (`ConfirmDialog`): Save, Discard (back to the last
 save), removing one, and leaving the board (Esc, Back, O) with unsaved
