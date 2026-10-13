@@ -1,12 +1,12 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.26_
+_Last updated: 2026-10-13, v0.0.27_
 
 ## What it is
 
 A web app that presents any `.excalidraw` board (or `.xlsx` Excel
 workbook) as a slideshow: open a board, and ← / → move page to page, each
-page fitted to the screen. Made because the owner draws long boards on excalidraw.com (pages stacked
+page shown as on excalidraw.com at 100% (shrunk only if it doesn't fit). Made because the owner draws long boards on excalidraw.com (pages stacked
 top to bottom, 7–35 MB, lots of images) and the Obsidian Excalidraw plugin
 can't cope with them. It presents, and lets the owner add text and pictures
 on top (marked "Added", kept in the browser); real editing stays on
@@ -45,6 +45,9 @@ camera maths live in `domain/`, which has the tests.
   (header row repeated, pictures never cut); fills, colours, borders, merged cells and pictures
   as in Excel; cell notes as red corner marks, read by hovering; read in
   the background so the app never freezes
+- Boards show at about 100%, as on excalidraw.com: each page as wide as
+  the screens the owner drew, a stray element far off only shrinks its own
+  page, never blown up past 100%; the bar shows the real zoom
 - Control bar, page grid (G), laser pointer (K), zoom, Hand / Select switch
 - Select with a box, lasso (Alt+drag), Shift to add, Ctrl+A for the page;
   then Copy (pastes into excalidraw.com), Copy image, Copy text, and an

@@ -33,6 +33,14 @@ describe("findPages without frames", () => {
     expect(pages[0].y1).toBe(120);
   });
 
+  it("keeps pages to the width most pages are drawn at, widening only a page that reaches further", () => {
+    // Four screens drawn 0..1900 wide; one stray element far to the right on the third.
+    const els = [0, 1, 2, 3].map((i) => rect(0, i * 1000, 1900, 900));
+    els.push(rect(3000, 2100, 100, 100));
+    const pages = findPages(els, 1000);
+    expect(pages.map((p) => [p.x0, p.x1])).toEqual([[-20, 1920], [-20, 1920], [-20, 3120], [-20, 1920]]);
+  });
+
   it("ignores deleted elements", () => {
     const els = [rect(0, 0, 100, 100), rect(0, 5000, 100, 100, { isDeleted: true })];
     expect(findPages(els, 1000)).toHaveLength(1);
@@ -75,6 +83,15 @@ describe("fitPage", () => {
     expect((100 + view.scrollY) * view.zoom).toBe(0);
     expect(view.marginTop).toBe(0);
     expect(view.marginBottom).toBe(500);
+  });
+});
+
+describe("fitPage capped", () => {
+  it("never blows a page up past maxZoom, centring it in the spare space", () => {
+    const view = fitPage({ x0: 0, y0: 0, x1: 1000, y1: 500, name: "" }, 2000, 1000, "centre", 1);
+    expect(view.zoom).toBe(1);
+    expect((0 + view.scrollX) * view.zoom).toBe(500);
+    expect(view.marginTop).toBe(250);
   });
 });
 

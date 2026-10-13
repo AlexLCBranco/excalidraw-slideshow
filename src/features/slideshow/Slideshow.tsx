@@ -161,7 +161,10 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   const barSpace = barPinned ? tokenPx(board.tabs ? "--dock-height" : "--bar-space") : 0;
   const topSpace = board.tabs ? barSpace : 0;
   const view = useMemo(() => {
-    const fit = fitPage(page, width, height - topSpace - barSpace, board.tabs ? "top" : "centre");
+    // A board is shown as on excalidraw.com: never past 100%, so on a big screen it isn't blown up.
+    const fit = board.tabs
+      ? fitPage(page, width, height - topSpace - barSpace, "top")
+      : fitPage(page, width, height - barSpace, "centre", 1);
     return { ...fit, scrollY: fit.scrollY + topSpace / fit.zoom };
   }, [page, width, height, topSpace, barSpace, board.tabs]);
 
@@ -533,7 +536,8 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
       fullscreen={fullscreen}
       tool={tool}
       gridOpen={overlay === "grid"}
-      zoom={camera ? camera.zoom / view.zoom : 1}
+      zoom={camera?.zoom ?? view.zoom}
+      zoomedIn={camera !== null}
       onBack={close}
       onPrevious={() => go(current - 1)}
       onNext={() => go(current + 1)}

@@ -26,9 +26,15 @@ styles/     design tokens + global reset
    sweep them to find empty horizontal gaps, then walk down the board: each
    cut goes in the gap nearest `top + pageHeight` (within ±40%, slightly
    favouring wider gaps). If no gap is in range, cut at exactly
-   `pageHeight`. Every page spans the full content width, so the zoom stays
-   steady from page to page. A leftover strip shorter than 35% of a page
-   joins the last page, and a board always gets at least one page.
+   `pageHeight`. A leftover strip shorter than 35% of a page joins the
+   last page, and a board always gets at least one page.
+3. **Width: the board's screen.** The owner draws one screen at a time at
+   100% on excalidraw.com, so most pages' drawings span the same ~1920
+   units. Every page gets that span (the median of the pages' own left and
+   right edges), widened only where its own drawing reaches further. The
+   zoom and left edge stay steady from page to page, and a stray element
+   far to one side shrinks only its own page, not the whole board (it used
+   to: the owner's boards showed at 71–78% instead of ~98%).
 
 `pageHeight` defaults to 1000 scene units, which matches the owner's boards
 (one screen-sized section per 1000 units, drifting to ~985 further down).
@@ -145,7 +151,10 @@ headless Edge.
 
 Excalidraw runs with `viewModeEnabled` + `zenModeEnabled`, dark theme. The
 app owns the camera: `fitPage` computes `zoom`, `scrollX` and `scrollY` so the
-page is centred and fitted (Excalidraw draws scene point `p` at screen
+page is centred and fitted, never past 100% for a board (`maxZoom`), so it
+looks as it does at 100% on excalidraw.com even on a big screen. The bar
+shows Excalidraw's own zoom, as excalidraw.com does (`npm run e2e:zoom`
+measures it on the canvas) (Excalidraw draws scene point `p` at screen
 `(p + scroll) * zoom`), then `updateScene` applies them. Two masks in the
 background colour cover whatever of the neighbouring pages would still show
 above and below. A workbook is laid out as Excel lays out a sheet: the control
@@ -367,6 +376,9 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.27** — Boards show as on excalidraw.com at 100%: pages are as wide
+  as the owner's screens, not the whole board, and never blown up past 100%.
+  The bar shows the real zoom.
 - **v0.0.26** — An unzoomed page can no longer be dragged around with the
   hand; it stays fixed like a slide.
 - **v0.0.22** — Added text and pictures can be resized (corner handle) and

@@ -20,8 +20,10 @@ interface Props {
   gridOpen: boolean;
   /** Part of a workbook's bottom strip, rather than floating. */
   docked?: boolean;
-  /** Zoom relative to the fitted page (1 = whole page). */
+  /** Excalidraw's zoom, shown as on excalidraw.com (1 = 100%). */
   zoom: number;
+  /** Zoomed in past the whole page. */
+  zoomedIn: boolean;
   onBack: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -57,7 +59,7 @@ export function ControlBar(p: Props) {
       </button>
       <Button icon="next" label="Next page (→)" onClick={p.onNext} disabled={p.index === p.count - 1} />
       <span className={styles.divider} />
-      <Button icon="zoomOut" label="Zoom out" onClick={p.onZoomOut} disabled={p.zoom <= 1} />
+      <Button icon="zoomOut" label="Zoom out" onClick={p.onZoomOut} disabled={!p.zoomedIn} />
       <button className={styles.counter} onClick={p.onZoomReset} title="Whole page">
         {Math.round(p.zoom * 100)}%
       </button>

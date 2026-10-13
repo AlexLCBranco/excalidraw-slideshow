@@ -104,7 +104,39 @@ function bandPages(content: readonly SceneElement[], pageHeight: number): Page[]
   }
   // A short leftover strip joins the last page instead of being its own page.
   if (pages.length && maxY + PAD > top) pages[pages.length - 1].y1 = maxY + PAD;
-  return pages;
+  return widenToScreen(pages, boxes);
+}
+
+type Box = { x0: number; x1: number; y0: number; y1: number };
+
+/**
+ * Narrows each page from the whole board's width to the board's "screen": the span most pages'
+ * drawings take up (the median of their left and right edges), widened only where a page's own
+ * drawing reaches further. A board drawn one screen at a time on excalidraw.com is then shown
+ * as it was drawn, near 100%, and a few stray elements far to one side shrink only their own page.
+ */
+function widenToScreen(pages: Page[], boxes: readonly Box[]): Page[] {
+  const spans = pages.map((p) => {
+    const inside = boxes.filter((b) => b.y1 > p.y0 && b.y0 < p.y1);
+    return inside.length
+      ? { x0: Math.min(...inside.map((b) => b.x0)), x1: Math.max(...inside.map((b) => b.x1)) }
+      : null;
+  });
+  const drawn = spans.filter((s) => s !== null);
+  if (!drawn.length) return pages;
+  const x0 = median(drawn.map((s) => s.x0));
+  const x1 = median(drawn.map((s) => s.x1));
+  return pages.map((p, i) => ({
+    ...p,
+    x0: Math.min(x0, spans[i]?.x0 ?? x0) - PAD,
+    x1: Math.max(x1, spans[i]?.x1 ?? x1) + PAD,
+  }));
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 /** Axis-aligned bounds of an element; rotated shapes get a box that contains them. */
@@ -128,11 +160,12 @@ export function elementBounds(e: SceneElement) {
 /**
  * The camera that fits `page` into a `width` x `height` viewport, centred
  * across. Down, it's centred too, or held to the top edge (as Excel shows a
- * sheet), leaving any spare space below it.
+ * sheet), leaving any spare space below it. A page is never blown up past
+ * `maxZoom`: a board passes 1, so on a big screen it stays at Excalidraw's 100%.
  * Excalidraw draws scene point p at screen (p + scroll) * zoom.
  */
-export function fitPage(page: Page, width: number, height: number, align: "centre" | "top" = "centre") {
-  const zoom = Math.min(width / (page.x1 - page.x0), height / (page.y1 - page.y0));
+export function fitPage(page: Page, width: number, height: number, align: "centre" | "top" = "centre", maxZoom = Infinity) {
+  const zoom = Math.min(width / (page.x1 - page.x0), height / (page.y1 - page.y0), maxZoom);
   const spare = Math.max(0, height - (page.y1 - page.y0) * zoom);
   const marginTop = align === "top" ? 0 : spare / 2;
   return {

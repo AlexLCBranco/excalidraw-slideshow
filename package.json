@@ -1,7 +1,7 @@
 {
   "name": "excalidraw-slideshow",
   "private": true,
-  "version": "0.0.26",
+  "version": "0.0.27",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "e2e:drop": "node scripts/e2e-drop.mjs",
     "e2e:add": "node scripts/e2e-additions.mjs",
     "e2e:slide": "node scripts/e2e-slide.mjs",
+    "e2e:zoom": "node scripts/e2e-zoom.mjs",
     "lint": "oxlint",
     "postinstall": "node scripts/copy-fonts.mjs"
   },
