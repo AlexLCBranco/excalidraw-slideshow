@@ -1,10 +1,10 @@
-import { CaptureUpdateAction, Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { isAdded, textSizeFor } from "../../domain/additions";
-import { type Opacities, opacityOf, withOpacities } from "../../domain/opacity";
+import { textSizeFor } from "../../domain/additions";
+import { type Opacities, opacityOf } from "../../domain/opacity";
 import { pageAt } from "../../domain/pages";
 import type { Board } from "../../domain/scene";
 import { tabOf } from "../../domain/sheetPages";
@@ -27,6 +27,7 @@ import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
 import { NoteLayer } from "./NoteLayer";
 import { PageGrid } from "./PageGrid";
+import { addedLayer, opacityLayer, useSceneLayers } from "./sceneLayers";
 import { selectionActions } from "./selectionActions";
 import { SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
@@ -112,19 +113,11 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
     [board.notes, page],
   );
 
-  // Opacity changes are only a view: Excalidraw redraws with them, but they last until the
-  // board is closed and never reach the file. Copy and the page grid still see the originals.
-  // Additions are drawn the same way, swapped into Excalidraw's scene on top of the board's own elements.
+  // What Excalidraw draws on top of the board for this viewing: the additions, then opacity
+  // changes. Like every change made while viewing, they last until the board is closed and never reach the file.
   const [opacities, setOpacities] = useState<Opacities>({});
-  useEffect(() => {
-    if (!api || !ready) return;
-    api.addFiles(Object.values(added.files));
-    const own = api.getSceneElementsIncludingDeleted().filter((e) => !isAdded(e.id));
-    api.updateScene({
-      elements: withOpacities([...own, ...(added.elements as unknown as typeof own)], opacities),
-      captureUpdate: CaptureUpdateAction.NEVER,
-    });
-  }, [api, ready, opacities, added]);
+  const layers = useMemo(() => [addedLayer(added), opacityLayer(opacities)], [added, opacities]);
+  useSceneLayers(api, ready, layers);
 
   useEffect(() => {
     saveLastPage(board.name, current);
