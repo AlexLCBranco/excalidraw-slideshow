@@ -1,5 +1,5 @@
 import { boardPages, DEFAULT_PAGE_HEIGHT } from "../domain/pages";
-import { BOARD_FILE, readBoardFile } from "./boardFile";
+import { isBoardFile, readBoardFile } from "./boardFile";
 import { renderPage } from "./render";
 import { type CachedThumbnail, loadPageHeight, loadThumbnail, type Source, saveThumbnail } from "./storage";
 
@@ -67,7 +67,7 @@ async function walk(dir: FileSystemDirectoryHandle, path: string, depth: number,
   for await (const child of dir.values()) {
     if (child.name.startsWith(".")) continue;
     const childPath = `${path}/${child.name}`;
-    if (child.kind === "file" && BOARD_FILE.test(child.name)) {
+    if (child.kind === "file" && isBoardFile(child.name)) {
       out.push(await entryFor(child as FileSystemFileHandle, childPath, path));
     } else if (child.kind === "directory" && depth < MAX_DEPTH) {
       await walk(child as FileSystemDirectoryHandle, childPath, depth + 1, out);

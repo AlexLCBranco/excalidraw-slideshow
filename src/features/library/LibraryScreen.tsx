@@ -31,7 +31,6 @@ interface Props {
   /** A message to show above the boards, such as a board that failed to open. */
   notice: string;
   onDismissNotice: () => void;
-  dragging: boolean;
   onOpen: (entry: BoardEntry) => void;
   onOpenGroup: (group: Group) => void;
   onSaveGroup: (group: SavedGroup) => void;
@@ -87,7 +86,7 @@ export function LibraryScreen(p: Props) {
   const hasBoards = p.state === "ready" && p.entries.length > 0;
 
   return (
-    <div className={styles.screen} data-dragging={p.dragging}>
+    <div className={styles.screen}>
       <header className={styles.header}>
         <div className={styles.brand}>
           <img src="/favicon.svg" alt="" className={styles.logo} />

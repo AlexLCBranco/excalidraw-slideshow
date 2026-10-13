@@ -1,9 +1,10 @@
+import { fileKind } from "../domain/drop";
 import { type Board, parseBoard } from "../domain/scene";
 import type { XlsxReply } from "./xlsx.worker";
 
 /** Files the library lists and the app presents: Excalidraw boards and Excel workbooks. */
-export const BOARD_FILE = /\.(excalidraw|xlsx)$/i;
-export const isSpreadsheet = (fileName: string) => /\.xlsx$/i.test(fileName);
+export const isBoardFile = (fileName: string) => fileKind(fileName) !== null;
+export const isSpreadsheet = (fileName: string) => fileKind(fileName) === "workbook";
 
 /** Reads a board or a workbook as a board. Returns an error message for anything else. */
 export async function readBoardFile(file: File): Promise<Board | string> {

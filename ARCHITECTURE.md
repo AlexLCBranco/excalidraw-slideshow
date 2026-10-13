@@ -249,6 +249,32 @@ re-saved to the same file show up the next time the board is opened. Browsers
 without the File System Access API (Firefox, Safari) still get "Open a file"
 and drag-and-drop, just not a remembered library.
 
+## Dropping files (`domain/drop.ts`, `features/open/useWindowFileDrop.ts`)
+
+Files dragged from Explorer can be dropped anywhere, on either screen.
+`domain/drop.ts` decides what a drop opens: one `.excalidraw` or `.xlsx`
+alone; two or more drawings as a group, in the order the browser hands them
+over (saved as a hand-made group, reused if the same boards are dropped
+again); workbooks never join a group; anything else gets "Can't open .pdf
+files". Opening then goes through the same `present` → `useBoardLoader` path
+as a library click.
+
+The listeners sit on `window` in the **capture** phase and stop every drag
+event there. That matters: Excalidraw's container has its own `onDrop` with
+no view-mode check, which would load a dropped board into its scene or insert
+a dropped picture or link, and it runs before any bubble-phase listener on
+`window`. Capturing also stops the browser opening what was dropped. Only
+text dragged onto a text field is let through.
+
+The "Drop to open" overlay counts `dragenter`/`dragleave` (the enter on a
+child comes before the leave on its parent, so it never flickers to zero),
+and resets on drop, Esc, or a second without `dragover` (browsers repeat it
+every few hundred ms, so silence means the drag ended without saying so).
+Handles come from `DataTransferItem.getAsFileSystemHandle` (Edge/Chrome),
+asked for before the first `await`; without it the board opens for this
+visit only, with a note. `scripts/e2e-drop.mjs` drives real file drags
+through DevTools' `Input.dispatchDragEvent`, file handles included.
+
 ## Offline
 
 `@excalidraw/excalidraw` is bundled by Vite. Its fonts are copied from
@@ -291,6 +317,9 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.20** — Drop files from Explorer anywhere: a "Drop to open" overlay,
+  several boards open as a group, other files get a short message, and
+  Excalidraw never handles a drop itself.
 - **v0.0.19** — Workbook cell notes: red corner marks, shown on hover.
 - **v0.0.18** — Excel workbooks (.xlsx): sheets as pages, with sheet tabs.
 - **v0.0.17** — Whole-board view (W): see the page cuts and move them by

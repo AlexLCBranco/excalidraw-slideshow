@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-13, v0.0.19_
+_Last updated: 2026-10-13, v0.0.20_
 
 ## What it is
 
@@ -33,6 +33,9 @@ camera maths live in `domain/`, which has the tests.
   when the owner presses Save
 - Library: connect folders or files once, boards listed with a picture of
   their first page, refreshed when boards change
+- Drag files from File Explorer onto the window, on either screen: a board
+  or workbook opens and joins the library; several boards open as a group
+  in the order dropped; anything else just says "Can't open .pdf files"
 - Groups: play several boards back to back (a subfolder, or picked by hand)
 - Excel workbooks (.xlsx): every visible sheet in tab order, with a tab bar;
   long or wide sheets split into screen-sized pages (header row repeated,

@@ -1,7 +1,7 @@
 {
   "name": "excalidraw-slideshow",
   "private": true,
-  "version": "0.0.19",
+  "version": "0.0.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "node scripts/e2e-xlsx.mjs",
+    "e2e:drop": "node scripts/e2e-drop.mjs",
     "lint": "oxlint",
     "postinstall": "node scripts/copy-fonts.mjs"
   },

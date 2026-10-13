@@ -90,4 +90,7 @@
   --z-hud: 10;
   --z-modal: 20;
   --z-bar: 30;
+  /* Files dragged over the window, and what became of a drop: above everything. */
+  --z-drop: 40;
+  --drop-border: 3px;
 }

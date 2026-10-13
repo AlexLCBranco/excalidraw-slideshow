@@ -1,0 +1,46 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--drop-border) dashed var(--accent);
+  background: var(--scrim);
+  pointer-events: none;
+  animation: fade-in var(--duration-fast) var(--ease-out);
+}
+
+.label {
+  color: var(--text);
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-bold);
+}
+
+.note {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  z-index: var(--z-drop);
+  max-width: calc(100% - 2 * var(--space-4));
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--font-size-md);
+  translate: -50% 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.note[data-visible="true"] {
+  opacity: 1;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
