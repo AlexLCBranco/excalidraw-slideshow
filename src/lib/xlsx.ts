@@ -4,6 +4,7 @@ import {
   type Anchor,
   type BorderStyle,
   type Cell,
+  type CellNote,
   type CellStyle,
   DEFAULT_COL_WIDTH,
   DEFAULT_ROW_HEIGHT,
@@ -70,6 +71,7 @@ export async function readXlsx(name: string, data: ArrayBuffer): Promise<ReadWor
     const rowHeights: number[] = [];
     const rowStyles: (CellStyle | undefined)[] = [];
     const cells: Cell[] = [];
+    const notes: CellNote[] = [];
     ws.eachRow({ includeEmpty: true }, (row, r) => {
       if (row.hidden) rowHeights[r - 1] = 0;
       else if (row.height) rowHeights[r - 1] = row.height * PX_PER_PT;
@@ -79,6 +81,8 @@ export async function readXlsx(name: string, data: ArrayBuffer): Promise<ReadWor
         const cell = ws.getCell(String(model.address));
         const value = cellValue(cell, unsupported);
         cells.push({ row: r - 1, col: Number(cell.col) - 1, text: value.text, numeric: value.numeric, style: style(cell.style) });
+        const note = noteText(cell.note);
+        if (note) notes.push({ row: r - 1, col: Number(cell.col) - 1, text: note });
       }
     });
 
@@ -117,6 +121,7 @@ export async function readXlsx(name: string, data: ArrayBuffer): Promise<ReadWor
       cells,
       merges,
       pictures,
+      notes,
       gridLines: ws.views?.[0]?.showGridLines !== false,
     };
   });
@@ -151,6 +156,13 @@ function cellValue(cell: ExcelJS.Cell, unsupported: Set<string>): { text: string
   // Merged cells other than the top-left one repeat its value in ExcelJS; they show nothing.
   if (cell.type === ExcelJS.ValueType.Merge) return { text: "", numeric: false };
   return show(cell.value);
+}
+
+/** A note's words, as Excel shows them: the author's name, then the text. */
+function noteText(note: ExcelJS.Cell["note"]): string {
+  if (!note) return "";
+  if (typeof note === "string") return note.trim();
+  return (note.texts ?? []).map((t) => t.text).join("").trim();
 }
 
 /** A number as a common Excel number format shows it; anything unusual falls back to plain digits. */

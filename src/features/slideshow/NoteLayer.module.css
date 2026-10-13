@@ -1,0 +1,23 @@
+/* A cell's note, beside its cell. It never takes the mouse, so the page underneath still works. */
+.note {
+  position: fixed;
+  z-index: var(--z-hud);
+  max-width: var(--note-width);
+  margin: 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+/* The first line is the author ("Alex:"), as Excel shows it. */
+.note::first-line {
+  font-weight: var(--weight-bold);
+}

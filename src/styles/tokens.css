@@ -44,6 +44,7 @@
   /* A workbook's sheet tabs, and the strip kept free for them above the bar. */
   --tab-height: 28px;
   --tabs-space: 44px;
+  --note-width: 320px;
   --thumb-max-height: 360px;
   --icon-button: 36px;
   --progress-height: 3px;

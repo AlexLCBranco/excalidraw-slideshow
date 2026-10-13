@@ -21,6 +21,7 @@ function sheet(over: Partial<Sheet> & { written?: string[] } = {}): Sheet {
     cells,
     merges: [],
     pictures: [],
+    notes: [],
     gridLines: true,
     ...over,
   };

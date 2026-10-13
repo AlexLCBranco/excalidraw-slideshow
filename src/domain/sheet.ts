@@ -52,6 +52,13 @@ export interface Picture {
   to: Anchor;
 }
 
+/** A note on a cell (Excel's "New Note"): a red corner mark, read on hover. */
+export interface CellNote {
+  row: number;
+  col: number;
+  text: string;
+}
+
 /** A merged block of cells, inclusive. Its top-left cell holds the value and style. */
 export interface Merge {
   r0: number;
@@ -75,6 +82,7 @@ export interface Sheet {
   cells: readonly Cell[];
   merges: readonly Merge[];
   pictures: readonly Picture[];
+  notes: readonly CellNote[];
   /** Excel's "Gridlines" view option. */
   gridLines: boolean;
 }
@@ -130,7 +138,7 @@ const EMPTY_COLS = 10;
 /**
  * The part of a sheet worth showing, as row and column counts from A1: every
  * cell with a value or a look of its own (fill or border unlike its column's),
- * every merge and every picture. Whole-column styles reach all 16,384
+ * every merge, picture and note. Whole-column styles reach all 16,384
  * columns, so they don't count. An empty sheet shows a small blank block.
  */
 export function sheetExtent(index: SheetIndex): { rows: number; cols: number } {
@@ -147,6 +155,7 @@ export function sheetExtent(index: SheetIndex): { rows: number; cols: number } {
     if (stands) reach(cell.row, cell.col);
   }
   for (const m of sheet.merges) reach(m.r1, m.c1);
+  for (const n of sheet.notes) reach(n.row, n.col);
   for (const p of sheet.pictures) {
     const s = pictureSpan(p);
     reach(s.r1, s.c1);

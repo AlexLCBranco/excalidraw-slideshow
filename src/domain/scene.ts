@@ -1,3 +1,4 @@
+import type { BoardNote } from "./notes";
 import type { SheetTab } from "./sheetPages";
 import type { Page, SceneElement } from "./types";
 
@@ -21,6 +22,8 @@ export interface Board {
    * colour, which suits drawings but would turn a black sheet white.
    */
   exactColors?: boolean;
+  /** A spreadsheet's cell notes, shown when the mouse is over their cell. */
+  notes?: readonly BoardNote[];
   /** What the file holds that is drawn differently from Excel, or not at all, said once on opening. */
   notShown?: readonly string[];
 }

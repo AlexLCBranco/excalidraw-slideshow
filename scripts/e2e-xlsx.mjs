@@ -93,6 +93,36 @@ await page.keyboard.press("ArrowLeft");
 await page.waitForTimeout(300);
 check((await activeTab()) === "Power Rankings" && (await pageNumber()) === maisFirst - 1, "← from a sheet's first page lands on the last page of the sheet before");
 
+// Notes: Power Rankings marks 12 cells with red corner triangles; hovering one shows its note.
+await page.click('nav[aria-label="Sheets"] >> text=Power Rankings');
+await page.waitForTimeout(1200);
+const marks = await page.evaluate(() => {
+  const canvas = document.querySelector("canvas.excalidraw__canvas.static");
+  const { width, height } = canvas;
+  const px = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+  const scale = width / canvas.getBoundingClientRect().width;
+  const found = [];
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i] > 220 && px[i + 1] < 40 && px[i + 2] < 40) {
+      const x = ((i / 4) % width) / scale, y = Math.floor(i / 4 / width) / scale;
+      // One point per triangle: skip pixels close to one already found.
+      if (!found.some((f) => Math.abs(f.x - x) < 8 && Math.abs(f.y - y) < 8)) found.push({ x, y });
+    }
+  }
+  return found;
+});
+check(marks.length === 12, `a red triangle on each of the 12 noted cells (found ${marks.length})`);
+check(!(await page.isVisible("[role=note]")), "no note shows until a cell is hovered");
+if (marks.length) {
+  await page.mouse.move(marks[0].x, marks[0].y + 2);
+  await page.waitForTimeout(200);
+  const note = (await page.isVisible("[role=note]")) ? await page.textContent("[role=note]") : "";
+  check(note.startsWith("Alex Castelo Branco:"), `hovering a marked cell shows its note (“${note.slice(0, 50).replace(/\n/g, " ")}…”)`);
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(200);
+  check(!(await page.isVisible("[role=note]")), "the note goes away when the mouse leaves the cell");
+}
+
 // The whole view says why pages can't be cut by hand.
 await page.keyboard.press("w");
 await page.waitForTimeout(500);

@@ -119,7 +119,12 @@ than found from the drawing, and `board.tabs` says where each sheet starts.
    most common fill (so painted sheets show no seams), runs of other fills,
    gridlines only between unfilled cells, borders joined into lines, text
    placed and wrapped as Excel would (Helvetica, measured by a `Measure`
-   passed in), pictures on top at their anchors.
+   passed in), pictures on top at their anchors. A cell with a note gets
+   Excel's red corner triangle (a filled closed line), and the cell's box
+   goes into `board.notes`. `NoteLayer` shows the note while the mouse is
+   over that box (`domain/notes.ts`). It only listens to `pointermove` on the
+   window and reads Excalidraw's live camera, so it never takes clicks or
+   drags away from selecting, the laser or the hand.
 
 All of it runs in a Web Worker (`lib/xlsx.worker.ts`, started by
 `lib/boardFile.ts`): a 5 MB workbook takes a second or two to read, and the
@@ -286,6 +291,7 @@ local ports are fixed because connected folders are remembered per address.
 
 ## History
 
+- **v0.0.19** — Workbook cell notes: red corner marks, shown on hover.
 - **v0.0.18** — Excel workbooks (.xlsx): sheets as pages, with sheet tabs.
 - **v0.0.17** — Whole-board view (W): see the page cuts and move them by
   hand, with the choice to save them or not.

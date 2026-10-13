@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Board } from "./scene";
 import type { Sheet } from "./sheet";
+import { noteAt } from "./notes";
 import { workbookBoard, wrapText } from "./sheetScene";
 import type { SceneElement } from "./types";
 
@@ -21,6 +22,7 @@ function board(over: Partial<Sheet>): Board {
     cells: [],
     merges: [],
     pictures: [],
+    notes: [],
     gridLines: true,
     ...over,
   };
@@ -70,6 +72,33 @@ describe("workbookBoard", () => {
     expect(b.pages!.every((p) => p.name === "S")).toBe(true);
     for (let i = 1; i < b.pages!.length; i++) expect(b.pages![i].y0).toBeGreaterThan(b.pages![i - 1].y1);
     expect(b.exactColors).toBe(true);
+  });
+});
+
+describe("cell notes", () => {
+  // A note on C2 (an empty cell, as Excel allows), on a 64 x 20 grid: the cell spans x 128-192, y 20-40.
+  const b = board({ cells: [{ row: 0, col: 0, text: "a", numeric: false }], notes: [{ row: 1, col: 2, text: "Alex:\nhes injured" }] });
+
+  it("marks the cell with a red triangle in its top-right corner", () => {
+    const marks = ofType(b, "line").filter((e) => e.backgroundColor === "#ff0000");
+    expect(marks).toHaveLength(1);
+    const [mark] = marks;
+    expect(mark.x + (mark.width ?? 0)).toBe(192);
+    expect(mark.y).toBe(b.pages![0].y0 + 20);
+    // Closed, so Excalidraw fills it.
+    expect(mark.points?.[0]).toEqual(mark.points?.at(-1));
+  });
+
+  it("finds the note under the mouse anywhere in its cell, and nowhere else", () => {
+    const top = b.pages![0].y0;
+    expect(noteAt(b.notes!, 130, top + 30)?.text).toBe("Alex:\nhes injured");
+    expect(noteAt(b.notes!, 100, top + 30)).toBeUndefined();
+    expect(noteAt(b.notes!, 130, top + 45)).toBeUndefined();
+  });
+
+  it("keeps a note on an otherwise empty cell on the page", () => {
+    const far = board({ cells: [{ row: 0, col: 0, text: "a", numeric: false }], notes: [{ row: 30, col: 12, text: "x" }] });
+    expect(far.notes).toHaveLength(1);
   });
 });
 

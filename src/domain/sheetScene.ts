@@ -1,3 +1,4 @@
+import type { BoardNote } from "./notes";
 import type { Board } from "./scene";
 import { type CellStyle, colWidth, type Edge, indexSheet, rowHeight, type Sheet, type SheetIndex } from "./sheet";
 import { paginateWorkbook, type SheetPage } from "./sheetPages";
@@ -17,6 +18,9 @@ const DEFAULT_SIZE_PT = 11;
 const BLACK = "#000000";
 const WHITE = "#ffffff";
 const GRIDLINE = "#d4d4d4";
+/** Excel's mark for a cell with a note: a small red triangle in its top-right corner. */
+const NOTE_MARK = "#ff0000";
+const NOTE_MARK_SIZE = 7;
 /** Empty space between two pages in the scene; masks hide it while presenting. */
 const PAGE_GAP = 200;
 
@@ -46,15 +50,17 @@ export function workbookBoard(
   if (!pages.length) return `${name} has no visible sheets.`;
   const indexes = sheets.map(indexSheet);
   const elements: SceneElement[] = [];
+  const notes: BoardNote[] = [];
   const boardPages: Page[] = [];
   let top = 0;
   pages.forEach((page, i) => {
     const drawn = drawPage(indexes[page.sheet], page, `${i}:`, top, measure);
     elements.push(...drawn.elements);
+    notes.push(...drawn.notes);
     boardPages.push({ x0: 0, y0: top, x1: drawn.width, y1: top + drawn.height, name: sheets[page.sheet].name });
     top += drawn.height + PAGE_GAP;
   });
-  return { name, elements, files, background: WHITE, pages: boardPages, tabs, exactColors: true };
+  return { name, elements, files, background: WHITE, pages: boardPages, tabs, notes, exactColors: true };
 }
 
 /** One page's shapes, with its top-left corner at (0, `top`). */
@@ -148,7 +154,17 @@ function drawPage(index: SheetIndex, page: SheetPage, prefix: string, top: numbe
     out.push(image(id(), x0, y0, x1 - x0, y1 - y0, p.fileId));
   }
 
-  return { elements: out, width, height };
+  // Notes: a red corner mark on the cell (the whole block, if merged); the words show on hover.
+  const notes: BoardNote[] = [];
+  for (const note of sheet.notes) {
+    if (!xs.pos.has(note.col) || !ys.pos.has(note.row)) continue;
+    const merge = index.merge(note.row, note.col);
+    const box = merge ? blockBox(merge.r0, merge.c0, merge.r1, merge.c1) : blockBox(note.row, note.col, note.row, note.col);
+    out.push(triangle(id(), box.x1, box.y0, NOTE_MARK_SIZE, NOTE_MARK));
+    notes.push({ ...box, text: note.text });
+  }
+
+  return { elements: out, notes, width, height };
 
   function blockBox(r0: number, c0: number, r1: number, c1: number) {
     return { x0: xs.edge(c0), y0: ys.edge(r0), x1: xs.edge(c1 + 1), y1: ys.edge(r1 + 1) };
@@ -400,6 +416,26 @@ function line(id: string, x: number, y: number, dx: number, dy: number, color: s
     points: [
       [0, 0],
       [dx, dy],
+    ],
+    startBinding: null,
+    endBinding: null,
+    startArrowhead: null,
+    endArrowhead: null,
+  } as SceneElement;
+}
+
+/** A filled right triangle tucked into the corner at (x, y): along the top edge and down the right one. */
+function triangle(id: string, x: number, y: number, size: number, color: string) {
+  return {
+    ...base(id, "line", x - size, y, size, size),
+    strokeColor: "transparent",
+    backgroundColor: color,
+    // A closed line is filled.
+    points: [
+      [0, 0],
+      [size, 0],
+      [size, size],
+      [0, 0],
     ],
     startBinding: null,
     endBinding: null,

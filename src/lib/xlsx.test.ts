@@ -74,6 +74,16 @@ describe("the real workbook", () => {
     expect(pr.cells.find((c) => c.row === 0 && c.col === 30)?.text).toBe("TEC"); // AE1 = I12
   });
 
+  it("reads the 12 notes on Power Rankings and puts each on a page", () => {
+    const notes = book.sheets[2].notes;
+    expect(notes).toHaveLength(12);
+    expect(notes.find((n) => n.row === 16 && n.col === 5)?.text).toBe("Alex Castelo Branco:\nhes getting sparred theres no way"); // F17
+    expect(board.notes).toHaveLength(12);
+    for (const n of board.notes ?? []) {
+      expect((board.pages ?? []).filter((p) => n.x0 >= p.x0 && n.x1 <= p.x1 && n.y0 >= p.y0 && n.y1 <= p.y1)).toHaveLength(1);
+    }
+  });
+
   it("draws white text on black, as in Excel", () => {
     const texts = board.elements.filter((e) => e.type === "text");
     expect(texts.length).toBeGreaterThan(50);

@@ -28,6 +28,7 @@ import { ControlBar } from "./ControlBar";
 import { CutOverview, type CutState } from "./CutOverview";
 import { HelpOverlay } from "./HelpOverlay";
 import { LaserPointer } from "./LaserPointer";
+import { NoteLayer } from "./NoteLayer";
 import { PageGrid } from "./PageGrid";
 import { type SelectionAction, SelectionLayer } from "./SelectionLayer";
 import { SheetTabs } from "./SheetTabs";
@@ -133,6 +134,18 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
   // Like a zoom, a selection belongs to the page it was made on.
   const [selection, setSelection] = useState<{ page: number; elements: SceneElement[] } | null>(null);
   const selected = selection?.page === current ? selection.elements : [];
+
+  /** Excalidraw's camera as it is now, including where a drag with the hand left it. */
+  const liveCamera = () => {
+    const s = api?.getAppState();
+    return s ? { zoom: s.zoom.value, scrollX: s.scrollX, scrollY: s.scrollY } : (camera ?? view);
+  };
+
+  // A workbook's cell notes on this page, read by hovering their cell.
+  const pageNotes = useMemo(
+    () => (board.notes ?? []).filter((n) => n.y0 >= page.y0 && n.y1 <= page.y1 && n.x0 >= page.x0 && n.x1 <= page.x1),
+    [board.notes, page],
+  );
 
   // Opacity changes are only a view: Excalidraw redraws with them, but they last until the
   // board is closed and never reach the file. Copy and the page grid still see the originals.
@@ -395,6 +408,7 @@ export function Slideshow({ board, initialPage, onPageChange, onOpenAnother, onC
           }
         />
       )}
+      {ready && overlay === "none" && pageNotes.length > 0 && <NoteLayer notes={pageNotes} camera={liveCamera} />}
       {!ready && <div className={styles.loading}>Loading {board.name}…</div>}
 
       {ready && (

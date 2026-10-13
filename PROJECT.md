@@ -1,6 +1,6 @@
 # Excalidraw Slideshow — project summary
 
-_Last updated: 2026-10-12, v0.0.18_
+_Last updated: 2026-10-13, v0.0.19_
 
 ## What it is
 
@@ -37,7 +37,8 @@ camera maths live in `domain/`, which has the tests.
 - Excel workbooks (.xlsx): every visible sheet in tab order, with a tab bar;
   long or wide sheets split into screen-sized pages (header row repeated,
   pictures never cut); fills, colours, borders, merged cells and pictures
-  as in Excel; read in the background so the app never freezes
+  as in Excel; cell notes as red corner marks, read by hovering; read in
+  the background so the app never freezes
 - Control bar, page grid (G), laser pointer (K), zoom, Hand / Select switch
 - Select with a box, lasso (Alt+drag), Shift to add, Ctrl+A for the page;
   then Copy (pastes into excalidraw.com), Copy image, Copy text, and an
